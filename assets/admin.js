@@ -73,7 +73,7 @@ function renderVerify(msg) {
   let left = OTP_WINDOW_SECONDS;
   app.innerHTML = `
     <div class="admin-head"><h1>인증번호 입력</h1></div>
-    <p style="margin-top:20px">${esc(email)} 로 보낸 ${OTP_LENGTH}자리 숫자를 입력하세요.</p>
+    <p style="margin-top:20px">${esc(email)} 주소로 보낸 ${OTP_LENGTH}자리 숫자를 입력하세요.</p>
     <form id="ver" class="entry" novalidate>
       <div class="field">
         <label class="label" for="code">인증번호 <span class="hint" id="left">${left}초 남음</span></label>
@@ -130,7 +130,7 @@ async function renderList(msg) {
     <li class="card">
       <button class="open" data-id="${r.id}" type="button">
         <span class="nm">${esc(r.name)}</span>
-        <span class="pz">${esc(r.pillars)}</span>
+        <span class="pz">${esc(String(r.pillars || "").replace("--", "(시 모름)"))}</span>
         <span class="meta">${r.calendar === "lunar" ? `음력${r.is_leap ? "(윤)" : ""}` : "양력"} ${esc(r.birth_date)} ${r.birth_time ? esc(r.birth_time) : "시각 모름"} · ${r.gender === "M" ? "남" : "여"}</span>
         <span class="meta">${esc(REGION_NAME[r.region] || r.region)} · 등록 ${fmt(r.created_at)}</span>
       </button>

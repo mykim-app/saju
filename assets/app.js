@@ -97,7 +97,6 @@ function renderForm(msg) {
 
     <div id="msg">${msg ? `<div class="err">${esc(msg)}</div>` : ""}</div>
     <button class="btn" type="submit">사주 보기</button>
-    <p class="notice">입력한 이름과 생년월일시는 풀이 기록으로 저장되며 관리자만 볼 수 있습니다. 저장을 원하지 않으면 입력하지 마세요.</p>
   </form>`;
 
   const f = document.getElementById("f");
