@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 import * as C from "./saju-core.js";
 import { renderReport, pillarsText } from "./saju-report.js";
+import { bindPdfButton } from "./pdf.js";
 
 const app = document.getElementById("app");
 const configured = !SUPABASE_URL.includes("여기에") && !SUPABASE_ANON_KEY.includes("여기에");
@@ -157,6 +158,12 @@ async function onSubmit(e) {
   save(v, chart);
 }
 
+function pdfName(chart) {
+  const s = chart.solar;
+  const nm = String(chart.input.name || "사주").replace(/[\\/:*?"<>|]/g, "");
+  return `사주풀이_${nm}_${s.y}${pad(s.m)}${pad(s.d)}.pdf`;
+}
+
 function showResult(chart) {
   app.innerHTML = `${renderReport(chart)}
     <div class="actions no-print"><button class="btn-ghost" type="button" id="again">다른 사람 사주 보기</button><button class="btn-ghost" type="button" id="edit">입력값 고치기</button></div>
@@ -165,6 +172,7 @@ function showResult(chart) {
   document.getElementById("again").addEventListener("click", () => { last = null; renderForm(); });
   document.getElementById("edit").addEventListener("click", () => renderForm());
   app.querySelector('[data-act="print"]')?.addEventListener("click", () => window.print());
+  bindPdfButton(app, pdfName(chart));
 }
 
 async function save(v, chart) {

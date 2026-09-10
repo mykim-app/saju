@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, OTP_LENGTH, OTP_WINDOW_SECONDS, IDLE_MINUTES, PER_PAGE } from "./config.js";
 import * as C from "./saju-core.js";
 import { renderReport } from "./saju-report.js";
+import { bindPdfButton } from "./pdf.js";
 
 const app = document.getElementById("app");
 const configured = !SUPABASE_URL.includes("여기에") && !SUPABASE_ANON_KEY.includes("여기에");
@@ -186,6 +187,7 @@ function openRecord(r) {
   window.scrollTo({ top: 0 });
   document.getElementById("back").addEventListener("click", () => renderList());
   app.querySelector('[data-act="print"]')?.addEventListener("click", () => window.print());
+  bindPdfButton(app, `사주풀이_${(r.name || "기록").replace(/[\\/:*?"<>|]/g, "")}_${r.birth_date.replaceAll("-", "")}.pdf`);
 }
 
 renderRequest();

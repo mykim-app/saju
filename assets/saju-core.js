@@ -347,6 +347,8 @@ const SAMHAP = [{ set: [8, 0, 4], el: "수", king: 0 }, { set: [11, 3, 7], el: "
 const BANGHAP = [{ set: [2, 3, 4], el: "목" }, { set: [5, 6, 7], el: "화" }, { set: [8, 9, 10], el: "금" }, { set: [11, 0, 1], el: "수" }];
 const key = (a, b) => (a < b ? `${a}-${b}` : `${b}-${a}`);
 
+// 파는 관례상 부르는 순서가 따로 있다(술미파, 사신파 등).
+const PA_NAME = { "0-9": "자유", "1-4": "축진", "2-11": "인해", "3-6": "묘오", "5-8": "사신", "7-10": "술미" };
 export function relations(chart) {
   const ps = POS.filter((p) => chart.pillars[p]);
   const out = [];
@@ -354,20 +356,23 @@ export function relations(chart) {
     const A = chart.pillars[ps[i]], B = chart.pillars[ps[j]];
     const where = `${POS_KO[ps[i]]}·${POS_KO[ps[j]]}`;
     const sk = key(A.s, B.s), bk = key(A.b, B.b);
-    if (STEM_HAP[sk]) out.push({ type: "천간합", text: `${STEMS[A.s]}${STEMS[B.s]}합(${STEM_HAP[sk]})`, where });
-    if (STEM_CHUNG.includes(sk)) out.push({ type: "천간충", text: `${STEMS[A.s]}${STEMS[B.s]}충`, where });
-    if (YUKHAP[bk]) out.push({ type: "육합", text: `${BRANCHES[A.b]}${BRANCHES[B.b]}합(${YUKHAP[bk]})`, where });
-    if (CHUNG.includes(bk)) out.push({ type: "충", text: `${BRANCHES[A.b]}${BRANCHES[B.b]}충`, where });
-    if (PA.includes(bk)) out.push({ type: "파", text: `${BRANCHES[A.b]}${BRANCHES[B.b]}파`, where });
-    if (HAE.includes(bk)) out.push({ type: "해", text: `${BRANCHES[A.b]}${BRANCHES[B.b]}해`, where });
-    if (WONJIN.includes(bk)) out.push({ type: "원진", text: `${BRANCHES[A.b]}${BRANCHES[B.b]} 원진`, where });
-    if (GWIMUN.includes(bk)) out.push({ type: "귀문", text: `${BRANCHES[A.b]}${BRANCHES[B.b]} 귀문`, where });
+    // 이름은 흔히 부르는 순서(자축인묘… 앞 글자 먼저)로 통일한다.
+    const s2 = STEMS[Math.min(A.s, B.s)] + STEMS[Math.max(A.s, B.s)];
+    const b2 = BRANCHES[Math.min(A.b, B.b)] + BRANCHES[Math.max(A.b, B.b)];
+    if (STEM_HAP[sk]) out.push({ type: "천간합", text: `${s2}합(${STEM_HAP[sk]})`, where });
+    if (STEM_CHUNG.includes(sk)) out.push({ type: "천간충", text: `${s2}충`, where });
+    if (YUKHAP[bk]) out.push({ type: "육합", text: `${b2}합(${YUKHAP[bk]})`, where });
+    if (CHUNG.includes(bk)) out.push({ type: "충", text: `${b2}충`, where });
+    if (PA.includes(bk)) out.push({ type: "파", text: `${PA_NAME[bk] || b2}파`, where });
+    if (HAE.includes(bk)) out.push({ type: "해", text: `${b2}해`, where });
+    if (WONJIN.includes(bk)) out.push({ type: "원진", text: `${b2} 원진`, where });
+    if (GWIMUN.includes(bk)) out.push({ type: "귀문", text: `${b2} 귀문`, where });
     // 형
     const t1 = [2, 5, 8], t2 = [1, 10, 7];
-    if (A.b !== B.b && t1.includes(A.b) && t1.includes(B.b)) out.push({ type: "형", text: `${BRANCHES[A.b]}${BRANCHES[B.b]}형(인사신 삼형의 일부)`, where });
-    if (A.b !== B.b && t2.includes(A.b) && t2.includes(B.b)) out.push({ type: "형", text: `${BRANCHES[A.b]}${BRANCHES[B.b]}형(축술미 삼형의 일부)`, where });
+    if (A.b !== B.b && t1.includes(A.b) && t1.includes(B.b)) out.push({ type: "형", text: `${b2}형(인사신 삼형의 일부)`, where });
+    if (A.b !== B.b && t2.includes(A.b) && t2.includes(B.b)) out.push({ type: "형", text: `${b2}형(축술미 삼형의 일부)`, where });
     if (bk === "0-3") out.push({ type: "형", text: "자묘형(서로 형)", where });
-    if (A.b === B.b && [4, 6, 9, 11].includes(A.b)) out.push({ type: "형", text: `${BRANCHES[A.b]}${BRANCHES[B.b]} 자형`, where });
+    if (A.b === B.b && [4, 6, 9, 11].includes(A.b)) out.push({ type: "형", text: `${b2} 자형`, where });
   }
   const bs = ps.map((p) => chart.pillars[p].b);
   for (const h of SAMHAP) {

@@ -3,7 +3,6 @@ import * as T from "./saju-data.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const pad = (n) => String(n).padStart(2, "0");
-const firstSentence = (s) => { const i = s.indexOf("니다."); return i > 0 ? s.slice(0, i + 3) : s; };
 const elName = (e) => `${C.ELEMENTS[e]}(${C.ELEMENTS_HJ[e]})`;
 const yinyang = (isYang) => (isYang ? "양" : "음");
 const josa = (word, a, b) => { const c = word.charCodeAt(word.length - 1); if (c < 0xac00 || c > 0xd7a3) return word + b; return word + ((c - 0xac00) % 28 ? a : b); };
@@ -25,8 +24,75 @@ function luckScore(chart, ys, s, b) {
   return { v, dayChung, label: v >= 1 ? "좋음" : v <= -1 ? "조심" : "보통", cls: v >= 1 ? "good" : v <= -1 ? "warn" : "mid" };
 }
 
-const ADD_LONG = { good: " 이 사주에 힘이 되는 기운이라 적극적으로 움직여도 좋습니다.", warn: " 다만 이 사주에는 부담이 되는 기운이라, 욕심을 줄이고 지키는 쪽으로 움직이세요.", mid: "" };
-const ADD_SHORT = { good: " 흐름이 좋으니 미뤄 둔 일을 해 보세요.", warn: " 무리하지 말고 조심스럽게 움직이세요.", mid: "" };
+// 십신을 쉬운 말로
+export const TG_PLAIN = ["동료·자립", "경쟁·승부", "재능·먹을 복", "표현·변화", "큰돈·활동", "꾸준한 돈", "책임·압박", "명예·인정", "배움·직감", "도움·문서"];
+// 무리(비겁·식상·재성·관성·인성)가 뜻하는 것 — 성별에 따라 다른 부분만 넣는다
+function groupMeans(i, gender) {
+  return [
+    "나 자신·형제·친구·동료",
+    gender === "F" ? "말·재능·표현·자녀" : "말·재능·표현",
+    gender === "M" ? "재물·결과·아내" : "재물·결과",
+    gender === "F" ? "직장·규칙·명예·남편" : "직장·규칙·명예",
+    "공부·문서·어머니·윗사람의 도움",
+  ][i];
+}
+// 십신이 주는 느낌: 1 밝음, 0 중간, -1 부담
+const TONE = [0, -1, 1, -1, 0, 1, -1, 1, 0, 1];
+// 지지(바탕)의 기운이 천간과 다를 때 덧붙이는 말
+const BRANCH_LIFE = [
+  "친구·동료와 어울리거나 함께할 일이 늘어납니다.",
+  "하고 싶은 말과 해 보고 싶은 일이 많아집니다.",
+  "돈이 들어오고 나갈 일이 많아집니다.",
+  "맡은 일과 책임이 늘어납니다.",
+  "배우거나 도움을 받을 일이 생깁니다.",
+];
+const firstPart = (s) => { const i = s.indexOf("니다."); return i > 0 ? s.slice(0, i + 3) : s; };
+
+/* 운(대운·세운·월운·일진) 풀이를 한 흐름으로 이어 붙인다.
+   kind: big(대운) / year(세운) / month(월운) / day(일진)
+   앞 문장(십신의 뜻)과 뒤 문장(좋음·조심 판단)이 서로 어긋나지 않도록
+   십신의 느낌(TONE)과 판단을 함께 보고 잇는 말을 고른다. */
+function luckText(chart, ys, s, b, kind, full) {
+  const dm = chart.dm;
+  const sTG = C.tenGodOfStem(dm, s), bTG = C.tenGodOfBranch(dm, b);
+  const gS = C.groupOf(sTG), gB = C.groupOf(bTG);
+  const sc = luckScore(chart, ys, s, b);
+  const L = T.LUCK_TEXT[sTG];
+  const out = [];
+  if (kind === "big") out.push(L.big);
+  else if (kind === "year") out.push(full ? L.year : firstPart(L.year));
+  else if (kind === "month") out.push(L.day.replaceAll("날입니다", "달입니다"));
+  else out.push(L.day);
+  if (gB !== gS && kind !== "day") out.push("또 " + BRANCH_LIFE[gB]);
+
+  const tone = TONE[sTG];
+  const useGroup = C.groupOf(C.tenGodOfStem(dm, [0, 2, 4, 6, 8][ys.useEl]));
+  // 관성(부담)이 인성(도움)으로 이어지는 짜임: 관성이 들어와도 오히려 힘이 된다
+  const gwanIn = sc.cls === "good" && sTG === 6 && (gB === 4 || useGroup === 4);
+  const unit = { big: "10년", year: "해", month: "달", day: "날" }[kind];
+  let v = "";
+  if (sc.cls === "good") {
+    if (gwanIn) v = kind === "big" ? "책임이 커지는 만큼 배움과 도움도 함께 들어와, 부담이 인정으로 바뀌는 10년입니다."
+      : `부담이 배움과 도움으로 이어지는 흐름이라, 이 사주에는 오히려 힘이 되는 ${unit}입니다.`;
+    else if (tone >= 0) v = kind === "month" || kind === "day" ? "흐름이 좋으니 미뤄 둔 일을 해 보세요."
+      : `이 사주에 필요한 기운이 들어오는 ${unit}라 계획한 일을 밀고 나가도 좋습니다.`;
+    else v = kind === "month" || kind === "day" ? "바쁘더라도 이 사주에는 힘이 되는 흐름입니다."
+      : "겉으로는 부담스러워 보여도 이 사주에는 필요한 기운이라, 잘 버티면 오히려 힘이 됩니다.";
+  } else if (sc.cls === "warn") {
+    if (tone > 0) v = kind === "month" || kind === "day" ? "다만 부담이 되는 기운이 섞여 있어 지출과 약속은 줄이세요."
+      : "다만 이 사주에는 부담이 되는 기운이 함께 들어오니, 좋은 일일수록 욕심을 줄이세요.";
+    else v = kind === "month" || kind === "day" ? "무리하지 말고 조심스럽게 움직이세요."
+      : "이 사주에는 부담이 되는 기운이라, 새 일을 벌이기보다 지키는 쪽으로 움직이세요.";
+  } else if (!sc.dayChung && (kind === "big" || kind === "year")) {
+    v = "좋고 나쁨이 크게 치우치지 않으니 하던 일을 꾸준히 이어 가세요.";
+  }
+  if (v) out.push(v);
+  if (sc.dayChung) out.push(kind === "day" ? "오늘은 배우자 자리와 부딪치는 날이라 가까운 사람과 말다툼을 피하세요."
+    : "배우자 자리(일지)와 부딪치는 기운이라 이사·이직 같은 변동이 생기기 쉽습니다.");
+  const text = out.join(" ").replace(/\{([MF]):([^}]*)\}/g, (_, g, t) => (g === chart.input.gender ? t : ""));
+  return { text, sc, sTG, bTG };
+}
+const tgCell = (a, b) => `${C.TEN_GODS[a]}<br>${C.TEN_GODS[b]}`;
 const DAY_TIPS = [
   { work: "혼자 밀어붙이기보다 동료와 나누면 수월합니다.", money: "함께 쓰는 돈, 빌려주는 돈을 조심하세요.", people: "경쟁심이 올라오니 말은 부드럽게 하세요." },
   { work: "생각한 것을 말이나 글로 꺼내 보면 좋습니다.", money: "작은 재주가 수입으로 이어질 수 있습니다.", people: "말실수만 조심하면 호감을 얻습니다." },
@@ -36,7 +102,7 @@ const DAY_TIPS = [
 ];
 
 function section(title, inner, id) {
-  return `<section class="rsec" ${id ? `id="${id}"` : ""}><h2>${title}</h2>${inner}</section>`;
+  return `<section class="rsec" data-pdf-block ${id ? `id="${id}"` : ""}><h2>${title}</h2>${inner}</section>`;
 }
 
 export function renderReport(chart, opts = {}) {
@@ -69,7 +135,7 @@ export function renderReport(chart, opts = {}) {
   }
 
   const head = `
-  <header class="rhead">
+  <header class="rhead" data-pdf-block>
     <p class="rname">${name}님의 사주</p>
     <dl class="rinfo">
       <div><dt>양력</dt><dd>${sol.y}년 ${sol.m}월 ${sol.d}일 ${timeTxt}</dd></div>
@@ -81,6 +147,7 @@ export function renderReport(chart, opts = {}) {
   </header>`;
 
   /* 원국 */
+  const G = inp.gender;
   const cols = ["hour", "day", "month", "year"];
   const th = cols.map((p) => `<th>${C.POS_KO[p]}</th>`).join("");
   const row = (label, fn) => `<tr><th scope="row">${label}</th>${cols.map((p) => `<td>${P[p] ? fn(P[p], tgt[p], p) : (label === "천간" || label === "지지" ? '<span class="unk">모름</span>' : "")}</td>`).join("")}</tr>`;
@@ -100,7 +167,11 @@ export function renderReport(chart, opts = {}) {
     </tbody>
   </table>
   </div>
-  <p class="hint">십신·12운성은 일간(나)을 기준으로, 12신살은 년지를 기준으로 봤습니다. 지장간은 지지 속에 숨은 천간입니다.</p>`;
+  <p class="hint">위 칸은 하늘의 기운(천간), 아래 칸은 땅의 기운(지지)입니다. 일주의 천간이 ‘나’(일간)이고, 나머지 글자는 나와의 관계(십신)로 읽습니다. 12운성은 그 자리에서 내 기운이 얼마나 센지, 지장간은 지지 속에 숨은 기운, 12신살은 태어난 해의 지지를 기준으로 본 특징, 납음은 60갑자마다 붙인 옛 이름입니다.</p>
+  <div class="tglegend">
+    <p class="tgl-title">십신 쉽게 보기</p>
+    <ul>${C.TEN_GODS.map((t, i) => `<li><b>${t}</b> ${TG_PLAIN[i]}</li>`).join("")}</ul>
+  </div>`;
 
   /* 오행 */
   const maxW = Math.max(...wgt, 1);
@@ -110,15 +181,23 @@ export function renderReport(chart, opts = {}) {
       <span class="bar"><i class="bg-${i}" style="width:${Math.round((wgt[i] / maxW) * 100)}%"></i></span>
       <span class="elnum">${cnt[i]}개</span>
     </li>`).join("");
+  const ysEarly = C.yongsin(chart);
   const elComments = [];
   cnt.forEach((c, i) => {
-    if (c >= 3) elComments.push(`<p><b class="el-${i}">${elName(i)}</b> 기운이 많습니다. ${T.ELEMENT_TEXT[i].many}</p>`);
-    if (c === 0) elComments.push(`<p><b class="el-${i}">${elName(i)}</b> 기운이 겉으로 드러나 있지 않습니다. ${T.ELEMENT_TEXT[i].few} ${T.ELEMENT_TEXT[i].boost}</p>`);
+    const E = T.ELEMENT_TEXT[i];
+    if (c >= 3) elComments.push(`<p><b class="el-${i}">${elName(i)}</b> 기운이 많습니다. ${E.many}${i === ysEarly.avoidEl ? " 이 사주에서 조심할 기운이기도 하니 이 기운이 더해지는 때에는 속도를 늦추세요." : ""}</p>`);
+    if (c === 0) {
+      let tail;
+      if (i === ysEarly.useEl || i === ysEarly.helpEl) tail = `이 사주에 필요한 기운이기도 해서 채워 주면 좋습니다. ${E.boost}`;
+      else if (i === ysEarly.avoidEl) tail = "다만 이 사주에서는 조심할 기운이라, 억지로 채우기보다 없는 대로 두는 편이 낫습니다.";
+      else tail = E.boost;
+      elComments.push(`<p><b class="el-${i}">${elName(i)}</b> 기운이 여덟 글자에 드러나 있지 않습니다. ${E.few} ${tail}</p>`);
+    }
   });
   if (!elComments.length) elComments.push("<p>다섯 가지 기운이 고르게 있는 편입니다. 한쪽으로 크게 치우치지 않아 균형 잡힌 성향을 보입니다.</p>");
   const ohaeng = `
     <ul class="ellist">${elRows}</ul>
-    <p class="hint">막대 길이는 지지 속 숨은 기운까지 더한 세기이고, 숫자는 드러난 여덟 글자(시각을 모르면 여섯 글자) 가운데 개수입니다.</p>
+    <p class="hint">숫자는 여덟 글자 가운데 몇 개인지이고(시각을 모르면 여섯 글자), 막대는 지지 속에 숨은 기운까지 더해 본 세기입니다.</p>
     ${elComments.join("")}`;
 
   /* 일간·일주 */
@@ -126,32 +205,32 @@ export function renderReport(chart, opts = {}) {
   const ilgan = `
     <p class="lead-in"><b class="el-${C.STEM_EL[dm]}">${D.name}</b> · ${D.image}</p>
     <p>${D.body}</p>
-    <dl class="pairs"><div><dt>강점</dt><dd>${D.good}</dd></div><div><dt>살필 점</dt><dd>${D.care}</dd></div></dl>`;
+    <dl class="pairs"><div><dt>강점</dt><dd>${D.good}</dd></div><div><dt>살필 점</dt><dd>${D.care}</dd></div><div><dt>띠</dt><dd>${C.ANIMALS[P.year.b]}띠 — ${T.ANIMAL_TEXT[P.year.b]}</dd></div></dl>`;
   const iljuName = gzText(P.day.s, P.day.b);
   const ilju = `
     <p class="lead-in">${gzCell(P.day.s, P.day.b, true)} <b>${iljuName}일주</b> · 납음 ${C.nayin(P.day.s, P.day.b)}</p>
     <p>${T.ILJU[iljuName]}</p>
-    <p class="hint">띠(${C.ANIMALS[P.year.b]}): ${T.ANIMAL_TEXT[P.year.b]}</p>`;
+    <p class="hint">일주는 태어난 날의 두 글자로, 나 자신과 배우자 자리를 함께 보여 줍니다.</p>`;
 
   /* 십신 */
   const maxG = Math.max(...grp, 1);
   const gRows = T.GROUP_TEXT.map((g, i) => `
     <li class="elrow">
-      <span class="elname">${g.name}</span>
+      <span class="elname">${g.name}<small>${groupMeans(i, G).split("·").slice(0, 2).join("·")}</small></span>
       <span class="bar"><i class="bg-g" style="width:${Math.round((grp[i] / maxG) * 100)}%"></i></span>
       <span class="elnum">${grp[i]}개</span>
     </li>`).join("");
   const gComments = [];
   grp.forEach((c, i) => {
     const g = T.GROUP_TEXT[i];
-    if (c >= 3) gComments.push(`<p><b>${g.name}</b>(${g.means})이 많습니다. ${g.many}</p>`);
-    if (c === 0) gComments.push(`<p><b>${g.name}</b>(${g.means})이 없습니다. ${g.none}</p>`);
+    if (c >= 3) gComments.push(`<p><b>${g.name}</b>이 많습니다. ${g.name}은 ${josa(groupMeans(i, G), "을", "를")} 뜻합니다. ${g.many}</p>`);
+    if (c === 0) gComments.push(`<p>겉으로 드러난 <b>${g.name}</b>이 없습니다. ${g.name}은 ${josa(groupMeans(i, G), "을", "를")} 뜻합니다. ${g.none}</p>`);
   });
-  const present = tgc.map((c, i) => (c ? `<li><b>${C.TEN_GODS[i]}</b> ${c}개 — ${T.TEN_GOD_TEXT[i].short}. ${T.TEN_GOD_TEXT[i].body}</li>` : "")).join("");
+  const present = tgc.map((c, i) => (c ? `<li><b>${C.TEN_GODS[i]}</b> ${c}개 — ${T.TEN_GOD_TEXT[i].short}입니다. ${T.TEN_GOD_TEXT[i].body}</li>` : "")).join("");
   const sipsin = `
     <ul class="ellist">${gRows}</ul>
     ${gComments.join("") || "<p>다섯 무리가 고르게 있어 어느 한쪽으로 치우치지 않습니다.</p>"}
-    <details><summary>사주에 있는 십신 자세히 보기</summary><ul class="plain">${present}</ul></details>`;
+    <p class="sub-h">이 사주에 있는 십신</p><ul class="plain">${present}</ul>`;
 
   /* 신강·신약, 용신 */
   const U = T.ELEMENT_TEXT[ys.useEl];
@@ -177,22 +256,29 @@ export function renderReport(chart, opts = {}) {
     <p class="hint">여기서는 일간의 강약을 기준으로 간단히 뽑았습니다. 계절의 차고 더움까지 따지는 방식에 따라 다르게 볼 수도 있습니다.</p>`;
 
   /* 신살 */
-  const sinsalItems = sins.filter((x) => x.id !== "공망" || x.where.length).map((x) => `
-    <li><b>${x.id}</b> <span class="where">${x.where.join(", ")}</span><br>${T.SINSAL_TEXT[x.id]}</li>`).join("");
+  const POS_MEAN = { "년주": "조상·어린 시절", "월주": "부모·형제·사회생활", "일주": "나와 배우자", "시주": "자녀·말년" };
+  const sinsalItems = sins.filter((x) => x.id !== "공망" || x.where.length).map((x) => {
+    const body = x.id === "공망"
+      ? `비어 있는 자리라는 뜻입니다. 이 사주에서는 ${x.where.map((w) => `${w}(${POS_MEAN[w]})`).join(", ")} 자리가 비어 있어, 그 자리가 뜻하는 일에 기대보다 실속이 적을 수 있습니다. 대신 정신적·종교적 분야에서는 오히려 좋게 쓰입니다.`
+      : T.SINSAL_TEXT[x.id];
+    return `
+    <li><b>${x.id}</b> <span class="where">${x.where.join(", ")}</span><br>${body}</li>`;
+  }).join("");
   const kong = sins.find((x) => x.id === "공망");
   const sinsal = `
     ${sinsalItems ? `<ul class="plain">${sinsalItems}</ul>` : "<p>두드러진 신살이 없습니다. 특별히 치우친 기운 없이 무난한 편입니다.</p>"}
-    <p class="hint">공망(비어 있는 지지): ${kong.kong.join(", ")}. 신살은 성향을 보는 참고 요소일 뿐, 좋고 나쁨을 단정하지 않습니다.</p>`;
+    <p class="hint">이 사주의 공망 글자는 ${kong.kong.join("·")}입니다. 도화·역마·화개는 태어난 해와 태어난 날의 지지를 모두 기준으로 보기 때문에, 위 원국 표의 12신살(태어난 해 기준)과 다르게 나올 수 있습니다. 신살은 성향을 보는 참고일 뿐, 좋고 나쁨을 정하지 않습니다.</p>`;
 
   /* 합충 */
   const relTypes = [...new Set(rels.map((r) => r.type))];
   const relHtml = rels.length ? `
     <ul class="plain">${rels.map((r) => `<li><b>${r.text}</b> <span class="where">${r.where}</span></li>`).join("")}</ul>
+    <p class="hint">년주는 조상·어린 시절, 월주는 부모·형제·사회생활, 일주는 나와 배우자, 시주는 자녀·말년 자리입니다. 부딪치는 자리가 뜻하는 쪽에서 변화가 생기기 쉽다고 봅니다.</p>
     ${relTypes.map((t) => `<p><b>${t}</b>: ${T.REL_TEXT[t]}</p>`).join("")}` : "<p>사주 안에서 서로 크게 부딪치거나 묶이는 글자가 없습니다. 기운의 흐름이 비교적 순탄합니다.</p>";
 
   /* 분야별 풀이 */
   const strongest = grp.indexOf(Math.max(...grp));
-  const personality = `${name}님은 ${D.image} 같은 기운을 타고났습니다. 일간의 힘은 ${st.level}이고, 사주에서는 <b>${T.GROUP_TEXT[strongest].name}</b>(${T.GROUP_TEXT[strongest].means})의 기운이 가장 두드러집니다. ${st.strong ? "스스로 판단하고 밀고 나가는 힘이 있으니, 넘치는 힘을 어디에 쓸지 방향을 잡는 것이 중요합니다." : st.weak ? "주변의 도움과 좋은 환경을 만나면 크게 피어나는 사주이니, 믿을 사람과 배움을 곁에 두세요." : "힘이 고른 편이라 상황에 따라 유연하게 대처하는 장점이 있습니다."}`;
+  const personality = `${name}님은 ${D.image} 같은 기운을 타고났습니다. 일간의 힘은 ${st.level}이고, 사주에서는 <b>${T.GROUP_TEXT[strongest].name}</b>, 곧 ${josa(groupMeans(strongest, G), "을", "를")} 뜻하는 기운이 가장 두드러집니다. ${st.strong ? "스스로 판단하고 밀고 나가는 힘이 있으니, 넘치는 힘을 어디에 쓸지 방향을 잡는 것이 중요합니다." : st.weak ? "주변의 도움과 좋은 환경을 만나면 크게 피어나는 사주이니, 믿을 사람과 배움을 곁에 두세요." : "힘이 고른 편이라 상황에 따라 유연하게 대처하는 장점이 있습니다."}`;
 
   let wealth;
   const jae = grp[2], sik = grp[1];
@@ -216,9 +302,10 @@ export function renderReport(chart, opts = {}) {
   if (sins.some((x) => (x.id === "도화살" || x.id === "홍염살") && x.where.length)) love += " 도화·홍염의 매력이 있어 사람을 끄는 힘이 좋습니다.";
   if (dayChungIn) love += " 배우자 자리가 다른 글자와 부딪치고 있어 서로의 생활 방식을 맞추는 노력이 필요합니다.";
 
-  const weakEl = cnt.indexOf(Math.min(...cnt));
-  const strongEl = wgt.indexOf(Math.max(...wgt));
-  const health = `상대적으로 부족한 <b class="el-${weakEl}">${elName(weakEl)}</b> 기운과 관련된 <b>${T.ELEMENT_TEXT[weakEl].body}</b>${josa(T.ELEMENT_TEXT[weakEl].body, "을", "를").slice(-1)} 챙기세요. 기운이 몰린 <b class="el-${strongEl}">${elName(strongEl)}</b> 쪽(${T.ELEMENT_TEXT[strongEl].body})도 무리하면 탈이 나기 쉽습니다. 이 내용은 전통적인 풀이일 뿐 건강 진단이 아니니, 몸에 이상이 있으면 병원에서 확인하세요.`;
+  const order = [0, 1, 2, 3, 4];
+  const weakEl = [...order].sort((a, b) => cnt[a] - cnt[b] || wgt[a] - wgt[b])[0];
+  const strongEl = [...order].sort((a, b) => cnt[b] - cnt[a] || wgt[b] - wgt[a])[0];
+  const health = `가장 적은 <b class="el-${weakEl}">${elName(weakEl)}</b> 기운과 관련된 <b>${T.ELEMENT_TEXT[weakEl].body}</b>${josa(T.ELEMENT_TEXT[weakEl].body, "을", "를").slice(-1)} 챙기세요. 가장 많은 <b class="el-${strongEl}">${elName(strongEl)}</b> 기운과 관련된 ${T.ELEMENT_TEXT[strongEl].body}도 무리하면 탈이 나기 쉽습니다. 이 내용은 전통적인 풀이일 뿐 건강 진단이 아니니, 몸에 이상이 있으면 병원에서 확인하세요.`;
 
   const fields = `
     <dl class="fields">
@@ -231,13 +318,14 @@ export function renderReport(chart, opts = {}) {
 
   /* 대운 */
   const curIdx = C.currentDaeun(chart);
+  const dStartM = chart.daeun.start.m;
   const dList = chart.daeun.list.map((d, i) => {
     const sTG = C.tenGodOfStem(dm, d.s), bTG = C.tenGodOfBranch(dm, d.b);
     const sc = luckScore(chart, ys, d.s, d.b);
     return `<li class="dcard ${i === curIdx ? "now" : ""}">
       <span class="dage">만 ${d.ageMan}세</span>
       ${gzCell(d.s, d.b)}
-      <span class="dtg">${C.TEN_GODS[sTG]}<br>${C.TEN_GODS[bTG]}</span>
+      <span class="dtg">${tgCell(sTG, bTG)}</span>
       <span class="dyear">${d.startYear}년~</span>
       <span class="tag ${sc.cls}">${sc.label}</span>
     </li>`;
@@ -245,18 +333,19 @@ export function renderReport(chart, opts = {}) {
   let dNow = "";
   if (curIdx >= 0) {
     const d = chart.daeun.list[curIdx];
-    const sTG = C.tenGodOfStem(dm, d.s), bTG = C.tenGodOfBranch(dm, d.b);
-    const sc = luckScore(chart, ys, d.s, d.b);
+    const next = chart.daeun.list[curIdx + 1];
+    const r = luckText(chart, ys, d.s, d.b, "big");
     dNow = `<div class="now-box">
-      <p class="lead-in">지금은 <b>${gzText(d.s, d.b)} 대운</b>(${d.startYear}년 ~ ${d.startYear + 9}년)입니다.</p>
-      <p>${T.LUCK_TEXT[sTG].big}</p>
-      <p>이 대운의 앞쪽 5년은 천간 ${C.TEN_GODS[sTG]}, 뒤쪽 5년은 지지 ${C.TEN_GODS[bTG]}의 기운이 더 강하게 작용합니다. ${sc.label === "좋음" ? "도움이 되는 기운이 들어오는 시기라 적극적으로 움직여도 좋습니다." : sc.label === "조심" ? "조심할 기운이 들어오는 시기라 새로운 일은 준비를 단단히 한 뒤 시작하세요." : "좋고 나쁨이 크게 치우치지 않는 시기입니다."}${sc.dayChung ? " 배우자 자리와 부딪치는 대운이라 이사·이직 같은 변동이 생기기 쉽습니다." : ""}</p>
+      <p class="lead-in">지금은 <b>${gzText(d.s, d.b)} 대운</b>입니다 · <span class="tag ${r.sc.cls}">${r.sc.label}</span></p>
+      <p class="hint">${d.startYear}년 ${dStartM}월 무렵부터 10년${next ? `, 다음 ${gzText(next.s, next.b)} 대운은 ${next.startYear}년 ${dStartM}월 무렵 시작` : ""}</p>
+      <p>${r.text}</p>
+      <p>10년 가운데 앞 5년은 천간 ${C.STEMS[d.s]}(${C.TEN_GODS[r.sTG]}: ${TG_PLAIN[r.sTG]}), 뒤 5년은 지지 ${C.BRANCHES[d.b]}(${C.TEN_GODS[r.bTG]}: ${TG_PLAIN[r.bTG]})의 영향이 더 크다고 봅니다.</p>
     </div>`;
   } else {
     dNow = `<p>첫 대운이 시작되기 전입니다. 첫 대운은 ${chart.daeun.start.y}년 ${chart.daeun.start.m}월 무렵 시작합니다.</p>`;
   }
   const daeun = `
-    <p>대운은 10년 단위로 바뀌는 큰 운의 흐름입니다. ${chart.daeun.forward ? "순서대로 나아가는(순행)" : "거꾸로 거슬러 가는(역행)"} 대운이며, 태어나서 ${chart.daeun.years}년 ${chart.daeun.months}개월 뒤인 <b>${chart.daeun.start.y}년 ${chart.daeun.start.m}월</b> 무렵 첫 대운이 시작됩니다.</p>
+    <p>대운은 10년마다 바뀌는 큰 운의 흐름입니다. 이 사주는 ${chart.daeun.forward ? "순서대로 나아가는(순행)" : "거꾸로 거슬러 가는(역행)"} 대운이며, 태어나서 ${chart.daeun.years}년 ${chart.daeun.months}개월 뒤인 <b>${chart.daeun.start.y}년 ${chart.daeun.start.m}월</b> 무렵 첫 대운이 시작됩니다. 각 칸의 두 글자 아래에는 그 대운이 나에게 어떤 기운인지(십신)를 적었습니다.</p>
     <ol class="dlist">${dList}</ol>
     ${dNow}`;
 
@@ -266,21 +355,20 @@ export function renderReport(chart, opts = {}) {
   const sy = num(today) < num(C.monthsOfYear(today.y)[0].start) ? today.y - 1 : today.y;
   for (let y = sy; y < sy + 10; y++) {
     const g = C.yearGZ(y);
-    const sTG = C.tenGodOfStem(dm, g.s), bTG = C.tenGodOfBranch(dm, g.b);
-    const sc = luckScore(chart, ys, g.s, g.b);
+    const r = luckText(chart, ys, g.s, g.b, "year", y === sy);
     years.push(`<tr class="${y === sy ? "now" : ""}">
       <td class="nw">${y}년</td><td class="nw">${gzCell(g.s, g.b, true)} ${gzText(g.s, g.b)}</td>
-      <td class="nw">${C.TEN_GODS[sTG]}<br>${C.TEN_GODS[bTG]}</td>
-      <td><span class="tag ${sc.cls}">${sc.label}</span></td>
-      <td class="yt">${y === sy ? T.LUCK_TEXT[sTG].year : firstSentence(T.LUCK_TEXT[sTG].year)}${ADD_LONG[sc.cls]}${sc.dayChung ? " 이사·이직 같은 변동이 생기기 쉽습니다." : ""}</td>
+      <td class="nw">${tgCell(r.sTG, r.bTG)}</td>
+      <td><span class="tag ${r.sc.cls}">${r.sc.label}</span></td>
+      <td class="yt">${r.text}</td>
     </tr>`);
   }
   const seun = `
     <div class="tscroll"><table class="ytable">
-      <thead><tr><th>연도</th><th>간지</th><th>십신(천간·지지)</th><th>흐름</th><th>풀이</th></tr></thead>
+      <thead><tr><th>연도</th><th>간지</th><th>십신</th><th>흐름</th><th>풀이</th></tr></thead>
       <tbody>${years.join("")}</tbody>
     </table></div>
-    <p class="hint">한 해의 운은 입춘(2월 4일 무렵)에 바뀝니다. 흐름은 이 사주에 도움이 되는 기운(용신·희신)이 들어오면 좋음, 조심할 기운(기신)이 들어오면 조심으로 표시했습니다.</p>`;
+    <p class="hint">한 해의 운은 입춘(2월 4일 무렵)에 바뀝니다. 그해의 기운이 이 사주에 필요한 기운(용신·희신)이면 좋음, 조심할 기운(기신)이면 조심으로 표시했습니다. 십신은 위가 천간, 아래가 지지입니다.</p>`;
 
   /* 월운 */
   const ipchun = C.monthsOfYear(today.y)[0].start;
@@ -289,32 +377,33 @@ export function renderReport(chart, opts = {}) {
   let curM = -1;
   months.forEach((m, i) => { if (num(m.start) <= num(today)) curM = i; });
   const mRows = months.map((m, i) => {
-    const sTG = C.tenGodOfStem(dm, m.s), bTG = C.tenGodOfBranch(dm, m.b);
-    const sc = luckScore(chart, ys, m.s, m.b);
+    const r = luckText(chart, ys, m.s, m.b, "month");
+    const yl = m.start.y !== sajuYear ? `${m.start.y}년 ` : "";
     return `<tr class="${i === curM ? "now" : ""}">
-      <td class="nw">${m.start.m}월 ${m.start.d}일~<br><span class="hint">${m.term}</span></td>
+      <td class="nw">${yl}${m.start.m}월 ${m.start.d}일~<br><span class="hint">${m.term}</span></td>
       <td class="nw">${gzCell(m.s, m.b, true)}</td>
-      <td class="nw">${C.TEN_GODS[sTG]}<br>${C.TEN_GODS[bTG]}</td>
-      <td><span class="tag ${sc.cls}">${sc.label}</span></td>
-      <td class="yt">${T.LUCK_TEXT[sTG].day.replaceAll("날입니다", "달입니다")}${ADD_SHORT[sc.cls]}</td>
+      <td class="nw">${tgCell(r.sTG, r.bTG)}</td>
+      <td><span class="tag ${r.sc.cls}">${r.sc.label}</span></td>
+      <td class="yt">${r.text}</td>
     </tr>`;
   }).join("");
   const wolun = `
     <div class="tscroll"><table class="ytable">
-      <thead><tr><th>시작일</th><th>간지</th><th>십신(천간·지지)</th><th>흐름</th><th>풀이</th></tr></thead>
+      <thead><tr><th>시작일</th><th>간지</th><th>십신</th><th>흐름</th><th>풀이</th></tr></thead>
       <tbody>${mRows}</tbody>
     </table></div>
-    <p class="hint">사주의 한 달은 절기가 드는 날부터 시작합니다. 날짜는 한국 시간 기준입니다.</p>`;
+    <p class="hint">사주에서 한 달은 1일이 아니라 절기가 드는 날부터 시작합니다(${sajuYear}년 입춘부터 ${sajuYear + 1}년 소한까지). 날짜는 한국 시간 기준입니다.</p>`;
 
   /* 오늘의 운세 */
   const tg = C.dayGZ(today.y, today.m, today.d);
-  const tS = C.tenGodOfStem(dm, tg.s), tB = C.tenGodOfBranch(dm, tg.b);
-  const tsc = luckScore(chart, ys, tg.s, tg.b);
+  const tr = luckText(chart, ys, tg.s, tg.b, "day");
+  const tS = tr.sTG, tB = tr.bTG, tsc = tr.sc;
   const tRel = C.branchRelToChart(chart, tg.b);
+  const stg = C.stageOf(dm, tg.b);
   const iljin = `
     <div class="today-box">
       <p class="lead-in">${today.y}년 ${today.m}월 ${today.d}일 ${gzCell(tg.s, tg.b, true)} ${gzText(tg.s, tg.b)}일 · <span class="tag ${tsc.cls}">${tsc.label}</span></p>
-      <p>${T.LUCK_TEXT[tS].day}${ADD_SHORT[tsc.cls]} 12운성으로는 ${C.STAGES[C.stageOf(dm, tg.b)]}에 해당해 ${T.STAGE_TEXT[C.stageOf(dm, tg.b)].split(". ")[1]}의 기운이 있습니다.${tRel.some((r) => r.type === "충" && r.pos === "day") ? " 오늘은 배우자 자리와 부딪치는 날이니 가까운 사람과 말다툼을 피하세요." : ""}${tRel.some((r) => r.type === "합" && r.pos === "day") ? " 오늘은 배우자 자리와 합이 드는 날이라 가까운 사람과 마음이 잘 통합니다." : ""}</p>
+      <p>${tr.text} 오늘은 12운성으로 ${C.STAGES[stg]}, 곧 ‘${T.STAGE_TEXT[stg].split(". ")[0]}’에 해당해 ${T.STAGE_TEXT[stg].split(". ")[1]}의 기운이 있습니다.${tRel.some((r) => r.type === "합" && r.pos === "day") ? " 배우자 자리와 합이 드는 날이라 가까운 사람과 마음이 잘 통합니다." : ""}</p>
       <dl class="pairs">
         <div><dt>일</dt><dd>${DAY_TIPS[C.groupOf(tS)].work}</dd></div>
         <div><dt>돈</dt><dd>${DAY_TIPS[C.groupOf(tS)].money}</dd></div>
@@ -323,15 +412,37 @@ export function renderReport(chart, opts = {}) {
       <p class="hint">오늘의 행운 색은 ${U.color}, 숫자는 ${U.number}, 좋은 방향은 ${U.dir}입니다.</p>
     </div>`;
 
+  /* 한눈에 보기 */
+  const yNow = C.yearGZ(sy);
+  const yR = luckText(chart, ys, yNow.s, yNow.b, "year");
+  const dCur = curIdx >= 0 ? chart.daeun.list[curIdx] : null;
+  const dCurSc = dCur ? luckScore(chart, ys, dCur.s, dCur.b) : null;
+  const summary = `
+  <section class="rsec summary" data-pdf-block>
+    <h2>한눈에 보기</h2>
+    <dl class="pairs">
+      <div><dt>타고난 기운</dt><dd><b class="el-${C.STEM_EL[dm]}">${D.name}</b> — ${D.image}. ${firstPart(D.body)}</dd></div>
+      <div><dt>일간의 힘</dt><dd>${st.level}이라 ${elName(ys.useEl)} 기운이 도움이 되고, ${elName(ys.avoidEl)} 기운은 조심하는 것이 좋습니다.</dd></div>
+      <div><dt>두드러진 기운</dt><dd>${T.GROUP_TEXT[strongest].name} — ${josa(groupMeans(strongest, G), "을", "를")} 뜻하는 기운이 가장 많습니다.</dd></div>
+      ${dCur ? `<div><dt>지금 대운</dt><dd>${gzText(dCur.s, dCur.b)} 대운(${dCur.startYear}~${dCur.startYear + 10}년) · <span class="tag ${dCurSc.cls}">${dCurSc.label}</span></dd></div>` : ""}
+      <div><dt>올해</dt><dd>${sy}년 ${gzText(yNow.s, yNow.b)}년 · <span class="tag ${yR.sc.cls}">${yR.sc.label}</span> ${firstPart(yR.text)}</dd></div>
+    </dl>
+  </section>`;
+
   const outro = `
-    <section class="rsec outro">
+    <section class="rsec outro" data-pdf-block>
       <p>사주는 타고난 기운의 짜임을 읽는 전통적인 방법입니다. 풀이는 스스로를 돌아보는 참고로만 쓰시고, 건강·돈·진로 같은 중요한 결정은 전문가와 상의하세요.</p>
-      ${opts.hidePrint ? "" : '<button class="btn-ghost no-print" type="button" data-act="print">인쇄하거나 PDF로 저장</button>'}
+      ${opts.hidePrint ? "" : `<div class="actions no-print">
+        <button class="btn" type="button" data-act="pdf">PDF로 저장</button>
+        <button class="btn-ghost" type="button" data-act="print">인쇄</button>
+      </div>
+      <p class="hint no-print" data-pdf-hint>PDF 파일이 바로 내려받아집니다. 내용이 쪽 경계에서 잘리지 않도록 나눠 담습니다.</p>`}
     </section>`;
 
   return `
-  <article class="report">
+  <article class="report" data-pdf-root>
     ${head}
+    ${summary}
     ${section("사주 원국", table, "sec-wonguk")}
     ${section("오행의 균형", ohaeng)}
     ${section("타고난 성향", ilgan)}

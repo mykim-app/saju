@@ -115,6 +115,8 @@ details.more[open] summary { margin-bottom: 12px; }
 .ellist { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
 .elrow { display: grid; grid-template-columns: 5.5em 1fr 3em; align-items: center; gap: 10px; }
 .elname { font-family: var(--serif); font-weight: 700; }
+.elname small { display: block; font-family: var(--sans, inherit); font-weight: 400; font-size: 11.5px; color: var(--soft); line-height: 1.2; }
+.elrow:has(small) { grid-template-columns: 7em 1fr 3em; margin-bottom: 4px; }
 .bar { height: 12px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 .bar i { display: block; height: 100%; }
 .elnum { text-align: right; font-size: 14px; color: var(--soft); }
@@ -216,6 +218,31 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
   .ytable tr.now { background: #fff; box-shadow: inset 3px 0 0 var(--ink); padding-left: 10px; }
   .ytable tr.now td, .ytable tr.now td:first-child { background: none; box-shadow: none; }
 }
+
+/* 한눈에 보기 */
+.summary dl.pairs { background: var(--paper-2); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin: 0; }
+.summary dl.pairs div { grid-template-columns: 6.5em 1fr; }
+/* 십신 쉽게 보기 */
+.tglegend { margin-top: 14px; border: 1px dashed var(--line); border-radius: 8px; padding: 10px 14px; }
+.tgl-title { font-size: 13px; color: var(--soft); margin: 0 0 6px !important; }
+.tglegend ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px 12px; font-size: 13.5px; }
+.tglegend b { font-family: var(--serif); margin-right: 4px; }
+.sub-h { font-weight: 700; margin-top: 18px !important; }
+.outro .actions { margin-top: 16px; }
+@media (max-width: 560px) {
+  .tglegend ul { grid-template-columns: repeat(2, 1fr); }
+  .summary dl.pairs div { grid-template-columns: 1fr; }
+}
+/* PDF로 뜰 때(pdf.js가 복제 화면에만 붙임) */
+.pdf-mode body { background: #fff; }
+.pdf-mode .no-print, .pdf-mode .admin-dot, .pdf-mode .hero, .pdf-mode .foot, .pdf-mode form.entry, .pdf-mode .admin-head { display: none !important; }
+.pdf-mode .report { margin: 0 !important; background: #fff; }
+.pdf-mode .rsec { padding-top: 22px; }
+.pdf-mode .tscroll, .pdf-mode .wonguk-wrap { overflow: visible !important; }
+.pdf-mode .wonguk td:nth-child(3), .pdf-mode .ytable tr.now td { background: #fff; }
+.pdf-mode * { transition: none !important; animation: none !important; }
+/* 그림으로 뜰 때 안쪽 그림자가 검은 칸으로 찍히므로 선으로 바꾼다 */
+.pdf-mode .ytable tr.now td:first-child { box-shadow: none !important; border-left: 3px solid var(--ink); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
 @media print {
   body { background: #fff; font-size: 12px; }
