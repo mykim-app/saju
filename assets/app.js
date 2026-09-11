@@ -41,12 +41,18 @@ function yearOptions(sel) {
 const numOptions = (from, to, sel, unit) => { let h = ""; for (let i = from; i <= to; i++) h += `<option value="${i}" ${i === sel ? "selected" : ""}>${i}${unit}</option>`; return h; };
 
 function renderForm(msg) {
-  const v = last || { name: "", gender: "", calendar: "solar", leap: false, y: 1990, m: 1, d: 1, time: "", timeUnknown: false, region: "seoul", yajasi: false };
+  const v = last || { name: "", hanja: "", gender: "", calendar: "solar", leap: false, y: 1990, m: 1, d: 1, time: "", timeUnknown: false, region: "seoul", yajasi: false };
   app.innerHTML = `
   <form class="entry" id="f" novalidate>
     <div class="field">
       <label class="label" for="name">이름</label>
       <input class="input" id="name" name="pname" maxlength="20" autocomplete="name" value="${esc(v.name)}" required>
+    </div>
+
+    <div class="field">
+      <label class="label" for="hanja">한자 이름 <span class="hint">(선택)</span></label>
+      <input class="input" id="hanja" name="hanja" maxlength="20" value="${esc(v.hanja || "")}" placeholder="예: 洪吉童 — 이름과 같은 글자 수로">
+      <p class="help">한자를 넣으면 획수로 이름의 오행을 뽑아 사주와 함께 풀어 드립니다. 성 1자, 이름 1~2자를 이름과 같은 순서·글자 수로 넣어 주세요.</p>
     </div>
 
     <fieldset class="field" style="border:0;padding:0;margin:0">
@@ -112,6 +118,7 @@ function readForm(f) {
   const el = f.elements;
   return {
     name: el.pname.value.trim(),
+    hanja: el.hanja.value.replace(/\s+/g, "").normalize("NFC"), // 호환 한자(인명용 異體字)도 같은 글자로 맞춘다
     gender: el.gender.value,
     calendar: el.calendar.value,
     leap: el.calendar.value === "lunar" && el.leap.checked,
@@ -128,12 +135,13 @@ function validate(v) {
   if (!v.gender) return "성별을 골라 주세요.";
   if (!v.timeUnknown && !/^\d{2}:\d{2}$/.test(v.time)) return "태어난 시각을 넣거나 '모름'에 표시해 주세요.";
   if (v.calendar === "lunar" && v.y > 2050) return "음력은 2050년까지만 넣을 수 있습니다.";
+  if (v.hanja && [...v.hanja].some((c) => !/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(c))) return "한자 이름에는 한자만 넣어 주세요.";
   return null;
 }
 
 function toChartInput(v) {
   const [hh, mm] = v.timeUnknown ? [12, 0] : v.time.split(":").map(Number);
-  return { name: v.name, gender: v.gender, calendar: v.calendar, leap: v.leap, y: v.y, m: v.m, d: v.d,
+  return { name: v.name, hanja: v.hanja, gender: v.gender, calendar: v.calendar, leap: v.leap, y: v.y, m: v.m, d: v.d,
     hour: hh, minute: mm, timeUnknown: v.timeUnknown, region: v.region, yajasi: v.yajasi };
 }
 
@@ -178,7 +186,7 @@ async function save(v, chart) {
   if (!sb) return;
   const s = chart.solar;
   const row = {
-    name: v.name, gender: v.gender, calendar: v.calendar, is_leap: v.leap,
+    name: v.name, hanja_name: v.hanja || null, gender: v.gender, calendar: v.calendar, is_leap: v.leap,
     birth_date: `${v.y}-${pad(v.m)}-${pad(v.d)}`,
     solar_date: `${s.y}-${pad(s.m)}-${pad(s.d)}`,
     birth_time: v.timeUnknown ? null : v.time,
@@ -186,7 +194,12 @@ async function save(v, chart) {
     pillars: pillarsText(chart),
     day_master: C.STEMS[chart.dm] + C.ELEMENTS[C.STEM_EL[chart.dm]],
   };
-  const { error } = await sb.from("saju_results").insert(row);
+  let { error } = await sb.from("saju_results").insert(row);
+  // 데이터베이스에 한자 이름 칸을 아직 만들지 않았으면(schema.sql 재실행 전) 한자 없이 다시 저장한다.
+  if (error && /hanja_name/.test(error.message || "")) {
+    delete row.hanja_name;
+    ({ error } = await sb.from("saju_results").insert(row));
+  }
   const box = document.getElementById("save-msg");
   if (error && box) box.innerHTML = `<div class="err">풀이 기록을 저장하지 못했습니다. 관리자에게 알려 주세요. <span class="hint">${esc(error.message)}</span></div>`;
   loadCount();

@@ -54,6 +54,9 @@ create table if not exists public.saju_results (
 );
 create index if not exists saju_results_created_at_idx on public.saju_results (created_at desc);
 
+-- 한자 이름(선택 입력) — 기존에 표가 이미 있던 경우를 위해 나중에 추가
+alter table public.saju_results add column if not exists hanja_name text check (char_length(hanja_name) <= 20);
+
 alter table public.saju_results enable row level security;
 revoke all on public.saju_results from anon, authenticated;
 grant insert on public.saju_results to anon, authenticated;

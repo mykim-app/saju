@@ -240,6 +240,13 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
   .tglegend ul { grid-template-columns: repeat(2, 1fr); }
   .summary dl.pairs div { grid-template-columns: 1fr; }
 }
+
+/* 이름 풀이(한자) */
+.hjlist { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.hjrow { display: flex; align-items: center; gap: 14px; }
+.hjch { font-family: var(--serif); font-size: 30px; font-weight: 700; width: 1.4em; text-align: center; flex: 0 0 auto; }
+.hjinfo { font-size: 14.5px; }
+.hjinfo .hint { font-size: 12.5px; margin: 0 2px; }
 /* PDF로 뜰 때(pdf.js가 복제 화면에만 붙임) */
 .pdf-mode body { background: #fff; }
 .pdf-mode .no-print, .pdf-mode .admin-dot, .pdf-mode .hero, .pdf-mode .foot, .pdf-mode form.entry, .pdf-mode .admin-head { display: none !important; }

@@ -1,5 +1,6 @@
 import * as C from "./saju-core.js";
 import * as T from "./saju-data.js";
+import { analyzeName, elementOfStrokes } from "./naming.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const pad = (n) => String(n).padStart(2, "0");
@@ -255,6 +256,64 @@ export function renderReport(chart, opts = {}) {
     </dl>
     <p class="hint">여기서는 일간의 강약을 기준으로 간단히 뽑았습니다. 계절의 차고 더움까지 따지는 방식에 따라 다르게 볼 수도 있습니다.</p>`;
 
+  /* 이름 풀이(한자 성명학) */
+  let nameSection = "", nameSummary = "";
+  if (inp.hanja) {
+    const nm = analyzeName(inp.name, [...inp.hanja]);
+    if (nm.error) {
+      nameSection = section("이름 풀이(한자)", `<p class="err" style="margin:0">${esc(nm.error)} 한자를 다시 확인해 주세요.</p>`);
+    } else {
+      const rows = nm.chars.map((c, i) => `
+        <li class="hjrow">
+          <span class="hjch el-${c.el}">${c.char}</span>
+          <span class="hjinfo"><b>${esc(c.hangul)}</b> · ${c.strokes}획 · <b class="el-${c.el}">${C.ELEMENTS[c.el]}(${C.ELEMENTS_HJ[c.el]})</b>${c.match ? "" : ` <span class="hint">대표 음은 ‘${c.reading}’</span>`}</span>
+        </li>`).join("");
+      const cntTxt = nm.elCount.map((n, i) => (n ? `${C.ELEMENTS[i]} ${n}개` : "")).filter(Boolean).join(" · ");
+      const sg = nm.sagyeok;
+      let sgRow = "";
+      if (sg) {
+        const list = [sg.won, sg.hyeong, sg.i, sg.jeong].map((g) => ({ ...g, el: elementOfStrokes(g.n) }));
+        const good = list.filter((g) => g.el === ys.useEl || g.el === ys.helpEl).map((g) => g.period.split("·")[0].replace("운", ""));
+        const bad = list.filter((g) => g.el === ys.avoidEl).map((g) => g.period.split("·")[0].replace("운", ""));
+        sgRow = `
+        <dl class="pairs">${list.map((g) => `<div><dt>${g.label}</dt><dd>${g.n} → <b class="el-${g.el}">${elName(g.el)}</b> · ${g.period}</dd></div>`).join("")}</dl>
+        <p>${good.length ? `이 사주에 도움이 되는 기운이 드는 시기는 <b>${good.join("·")}</b>입니다.` : "사격 가운데 이 사주의 용신·희신 기운이 드는 시기는 없습니다."}${bad.length ? ` 조심할 ${elName(ys.avoidEl)} 기운이 드는 시기는 ${bad.join("·")}입니다.` : ""}</p>`;
+      }
+      let soundTxt = "";
+      if (nm.soundFlow) {
+        const seq = nm.soundFlow.els.map((e) => C.ELEMENTS[e]).join(" → ");
+        const { gen, ctrl, same } = nm.soundFlow;
+        let judge;
+        if (!ctrl && gen) judge = "서로 살려 주는 상생으로 이어져 소리의 결이 부드럽습니다.";
+        else if (!ctrl && !gen) judge = "같은 기운끼리 이어져 소리가 한결같은 편입니다.";
+        else if (!gen && !same) judge = "서로 누르는 상극으로 이어져 소리가 다소 부딪히는 편입니다.";
+        else judge = `상생${gen ? ` ${gen}번` : " 없이"}, 상극 ${ctrl}번${same ? `, 같은 기운 ${same}번` : ""}이 섞여 있습니다.`;
+        soundTxt = `<p>이름을 부르는 소리(첫 자음)의 오행은 <b>${seq}</b> 순서로 이어집니다. ${judge}</p>`;
+      }
+      const need = [ys.useEl, ys.helpEl], avoid = ys.avoidEl;
+      const needCnt = nm.chars.filter((c) => need.includes(c.el)).length;
+      const avoidCnt = nm.chars.filter((c) => c.el === avoid).length;
+      let fit;
+      if (needCnt && !avoidCnt) fit = `이름 글자 가운데 ${needCnt}개가 이 사주에 도움이 되는 ${elName(ys.useEl)}·${elName(ys.helpEl)} 기운이라, 사주에 필요한 기운을 이름이 보태 주는 짜임입니다.`;
+      else if (avoidCnt && !needCnt) fit = `이름 글자 가운데 ${avoidCnt}개가 이 사주에서 조심하는 ${elName(ys.avoidEl)} 기운이라, 사주가 이미 조심하는 기운을 이름에서도 쓰고 있습니다.`;
+      else if (needCnt && avoidCnt) fit = `도움이 되는 기운과 조심할 기운이 이름 안에 함께 있습니다(도움 ${needCnt}자 · 조심 ${avoidCnt}자).`;
+      else fit = "이름의 오행이 이 사주의 용신·기신 어느 쪽과도 크게 겹치지 않습니다.";
+      nameSummary = `${esc(inp.hanja)} — 이름 글자의 오행은 ${cntTxt}${needCnt ? `, 사주에 도움이 되는 기운이 ${needCnt}자` : ""}${avoidCnt ? `, 조심할 기운이 ${avoidCnt}자` : ""}입니다.`;
+      const warn = nm.mismatch.length
+        ? `<p class="hint">한글 이름과 한자 음이 다른 글자가 있습니다(${nm.mismatch.map((c) => `${esc(c.hangul)} ↔ ${c.char}`).join(", ")}). 순서가 바뀌었는지 확인해 주세요. 음이 여러 개인 한자라면 그대로 두셔도 됩니다.</p>` : "";
+      nameSection = section("이름 풀이(한자)", `
+        <ul class="hjlist">${rows}</ul>
+        ${warn}
+        <p class="hint">이름 글자의 오행: ${cntTxt}</p>
+        <p class="sub-h">사격(四格)</p>
+        ${sgRow || '<p>이름이 한 글자여서 사격은 계산하지 않았습니다.</p>'}
+        <p class="hint">사격은 이름 획수를 성과 조합해 초년·청년·중년·노년 네 시기로 나눠 보는 전통 방식입니다. 숫자의 끝자리로 오행을 정합니다(1·2 목, 3·4 화, 5·6 토, 7·8 금, 9·0 수). 이 숫자로 길흉을 매기는 81수리 표도 있지만, 문헌과 유파마다 배정이 달라 여기서는 다루지 않았습니다.</p>
+        ${soundTxt}
+        <p>${fit}</p>
+        <p class="hint">획수는 부수를 획이 줄기 전의 본래 글자로 보고 세는 원획을 썼습니다(예: 삼수변 氵→물 水로 보아 4획). 발음오행은 훈민정음의 소리 분류를 오행에 대응한 것으로, ㅁㅂㅍ·ㅇㅎ의 분류는 유파에 따라 다르게 보기도 합니다.</p>`);
+    }
+  }
+
   /* 신살 */
   const POS_MEAN = { "년주": "조상·어린 시절", "월주": "부모·형제·사회생활", "일주": "나와 배우자", "시주": "자녀·말년" };
   const sinsalItems = sins.filter((x) => x.id !== "공망" || x.where.length).map((x) => {
@@ -425,6 +484,7 @@ export function renderReport(chart, opts = {}) {
       <div><dt>일간의 힘</dt><dd>${st.level}이라 ${elName(ys.useEl)} 기운이 도움이 되고, ${elName(ys.avoidEl)} 기운은 조심하는 것이 좋습니다.</dd></div>
       <div><dt>두드러진 기운</dt><dd>${T.GROUP_TEXT[strongest].name} — ${josa(groupMeans(strongest, G), "을", "를")} 뜻하는 기운이 가장 많습니다.</dd></div>
       ${dCur ? `<div><dt>지금 대운</dt><dd>${gzText(dCur.s, dCur.b)} 대운(${dCur.startYear}~${dCur.startYear + 10}년) · <span class="tag ${dCurSc.cls}">${dCurSc.label}</span></dd></div>` : ""}
+      ${nameSummary ? `<div><dt>이름</dt><dd>${nameSummary}</dd></div>` : ""}
       <div><dt>올해</dt><dd>${sy}년 ${gzText(yNow.s, yNow.b)}년 · <span class="tag ${yR.sc.cls}">${yR.sc.label}</span> ${firstPart(yR.text)}</dd></div>
     </dl>
   </section>`;
@@ -449,6 +509,7 @@ export function renderReport(chart, opts = {}) {
     ${section("일주 풀이", ilju)}
     ${section("십신으로 본 짜임", sipsin)}
     ${section("일간의 힘과 도움이 되는 기운", strengthHtml)}
+    ${nameSection}
     ${section("신살", sinsal)}
     ${section("합·충·형·파·해", relHtml)}
     ${section("분야별 풀이", fields)}

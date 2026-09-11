@@ -175,7 +175,7 @@ function openRecord(r) {
   const [hh, mm] = r.birth_time ? r.birth_time.split(":").map(Number) : [12, 0];
   let html;
   try {
-    const chart = C.buildChart({ name: r.name, gender: r.gender, calendar: r.calendar, leap: r.is_leap, y, m, d,
+    const chart = C.buildChart({ name: r.name, hanja: r.hanja_name || "", gender: r.gender, calendar: r.calendar, leap: r.is_leap, y, m, d,
       hour: hh, minute: mm, timeUnknown: !r.birth_time, region: r.region, yajasi: r.yajasi });
     html = renderReport(chart, { hidePrint: false });
   } catch (err) {
