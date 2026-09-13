@@ -100,7 +100,6 @@ function renderForm(msg) {
       <div class="seg">
         ${Object.entries(REL_TYPE_LABEL).map(([v, label]) => `<label><input type="radio" name="relType" value="${v}" ${relType === v ? "checked" : ""}><span>${label}</span></label>`).join("")}
       </div>
-      <p class="help">연인·부부일 때만 속궁합(배우자 자리·납음오행)까지 함께 봅니다. 친구·동료, 가족은 나머지 궁합만 봅니다.</p>
     </fieldset>
     ${personFields("a", "사람 1", va)}
     ${personFields("b", "사람 2", vb)}
