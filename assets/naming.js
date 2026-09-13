@@ -126,8 +126,6 @@ export function analyzeName(hangulName, hanjaChars) {
     soundFlow = { els: soundEls, gen, ctrl, same, steps: soundEls.length - 1 };
   }
 
-  const leading = [...hangulName].map((s, i) => (i === 0 ? leadingSoundRule(s) : s));
-
   const mismatch = chars.filter((c) => !c.match);
-  return { chars, surname, given, sagyeok, elCount, soundFlow, leading, sLen, mismatch };
+  return { chars, surname, given, sagyeok, elCount, soundFlow, sLen, mismatch };
 }
