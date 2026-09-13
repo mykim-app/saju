@@ -3,6 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 import * as C from "./saju-core.js";
 import { renderReport, pillarsText } from "./saju-report.js";
 import { bindPdfButton } from "./pdf.js";
+import { candidatesFor } from "./naming.js";
 
 const app = document.getElementById("app");
 const configured = !SUPABASE_URL.includes("여기에") && !SUPABASE_ANON_KEY.includes("여기에");
@@ -51,8 +52,12 @@ function renderForm(msg) {
 
     <div class="field">
       <label class="label" for="hanja">한자 이름 <span class="hint">(선택)</span></label>
-      <input class="input" id="hanja" name="hanja" maxlength="20" value="${esc(v.hanja || "")}" placeholder="예: 洪吉童 — 이름과 같은 글자 수로">
-      <p class="help">한자를 넣으면 획수로 이름의 오행을 뽑아 사주와 함께 풀어 드립니다. 성 1자, 이름 1~2자를 이름과 같은 순서·글자 수로 넣어 주세요.</p>
+      <div class="hjinput-row">
+        <input class="input" id="hanja" name="hanja" maxlength="20" value="${esc(v.hanja || "")}" placeholder="예: 洪吉童 — 이름과 같은 글자 수로">
+        <button class="btn-ghost" type="button" id="hjpick-btn">후보에서 고르기</button>
+      </div>
+      <p class="help">한자를 넣으면 획수로 이름의 오행을 뽑아 사주와 함께 풀어 드립니다. 성 1자, 이름 1~2자를 이름과 같은 순서·글자 수로 넣어 주세요. 한자를 몰라 입력이 어려우면 옆의 ‘후보에서 고르기’를 눌러 보세요.</p>
+      <div id="hjpicker" class="hjpicker" hidden></div>
     </div>
 
     <fieldset class="field" style="border:0;padding:0;margin:0">
@@ -112,6 +117,54 @@ function renderForm(msg) {
     if (e.target.name === "timeUnknown") { fe.time.disabled = e.target.checked; if (e.target.checked) fe.time.value = ""; }
   });
   f.addEventListener("submit", onSubmit);
+  bindHanjaPicker();
+}
+
+const CAND_STEP = 60; // 후보가 많은 글자는 이만큼씩 나눠 보여 준다
+
+function bindHanjaPicker() {
+  const btn = document.getElementById("hjpick-btn");
+  const box = document.getElementById("hjpicker");
+  btn.addEventListener("click", () => {
+    const nm = document.getElementById("name").value.trim();
+    box.hidden = false;
+    if (!nm) { box.innerHTML = '<p class="hint">먼저 위에서 이름(한글)을 입력해 주세요.</p>'; return; }
+    const syls = [...nm];
+    const lists = syls.map((s) => candidatesFor(s));
+    if (lists.some((l) => l.length === 0)) {
+      box.innerHTML = '<p class="hint">이름 가운데 한자로 찾을 수 없는 글자가 있습니다(순 우리말 이름일 수 있어요). 아는 한자가 있으면 위 칸에 직접 넣어 주시고, 모르면 비워 두셔도 사주 풀이에는 지장이 없습니다.</p>';
+      return;
+    }
+    const picks = new Array(syls.length).fill(null);
+    const shown = lists.map(() => CAND_STEP);
+    const cur = [...document.getElementById("hanja").value];
+    if (cur.length === syls.length) cur.forEach((c, i) => { if (lists[i].some((x) => x.char === c)) picks[i] = c; });
+
+    const draw = () => {
+      box.innerHTML = `
+        <div class="hjpick-rows">${syls.map((s, i) => `
+          <div class="hjpick-row">
+            <p class="hjpick-label">${i + 1}번째 글자 · <b>${esc(s)}</b> ${picks[i] ? `→ 고름: <b class="pickedch">${picks[i]}</b>` : ""}</p>
+            <div class="hjpick-grid">
+              ${lists[i].slice(0, shown[i]).map((c) => `<button type="button" class="hjcand ${picks[i] === c.char ? "sel" : ""}" data-i="${i}" data-ch="${esc(c.char)}">${c.char}<small>${c.strokes}획</small></button>`).join("")}
+            </div>
+            ${lists[i].length > shown[i] ? `<button type="button" class="hjmore" data-more="${i}">후보 더 보기(${lists[i].length - shown[i]}자 더)</button>` : ""}
+          </div>`).join("")}
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button type="button" class="btn" id="hjpick-apply" ${picks.some((p) => !p) ? "disabled" : ""}>이 한자로 채우기</button>
+          <button type="button" class="btn-ghost" id="hjpick-cancel">닫기</button>
+        </div>`;
+      box.querySelectorAll(".hjcand").forEach((b) => b.addEventListener("click", () => { picks[Number(b.dataset.i)] = b.dataset.ch; draw(); }));
+      box.querySelectorAll(".hjmore").forEach((b) => b.addEventListener("click", () => { shown[Number(b.dataset.more)] += CAND_STEP; draw(); }));
+      box.querySelector("#hjpick-apply")?.addEventListener("click", () => {
+        document.getElementById("hanja").value = picks.join("");
+        box.hidden = true;
+      });
+      box.querySelector("#hjpick-cancel").addEventListener("click", () => { box.hidden = true; });
+    };
+    draw();
+  });
 }
 
 function readForm(f) {

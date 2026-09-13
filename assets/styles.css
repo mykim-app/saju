@@ -70,9 +70,11 @@ details.more[open] summary { margin-bottom: 12px; }
 .btn {
   font: inherit; font-weight: 700; font-size: 17px; border: 0; border-radius: 6px;
   background: var(--water); color: #fff; padding: 14px 20px; min-height: 52px; cursor: pointer; width: 100%;
+  display: flex; align-items: center; justify-content: center; text-align: center; box-sizing: border-box;
 }
 .btn:hover { background: #1b3654; }
 .btn:disabled { opacity: .5; cursor: default; }
+a.btn { margin-top: 10px; }
 .btn-ghost {
   font: inherit; border: 1px solid var(--ink); background: transparent; color: var(--ink);
   border-radius: 6px; padding: 10px 16px; min-height: 44px; cursor: pointer;
@@ -247,6 +249,28 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
 .hjch { font-family: var(--serif); font-size: 30px; font-weight: 700; width: 1.4em; text-align: center; flex: 0 0 auto; }
 .hjinfo { font-size: 14.5px; }
 .hjinfo .hint { font-size: 12.5px; margin: 0 2px; }
+
+/* 한자 이름 입력·후보 고르기 */
+.hjinput-row { display: flex; gap: 8px; }
+.hjinput-row .input { flex: 1 1 auto; min-width: 0; }
+.hjinput-row .btn-ghost { flex: 0 0 auto; white-space: nowrap; }
+.hjpicker { border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: var(--paper-2); }
+.hjpick-row + .hjpick-row { margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--line); }
+.hjpick-label { margin: 0 0 8px; font-size: 14px; }
+.pickedch { font-family: var(--serif); color: var(--water); }
+.hjpick-grid { display: flex; flex-wrap: wrap; gap: 6px; max-height: 168px; overflow-y: auto; padding: 2px; }
+.hjcand {
+  font-family: var(--serif); font-size: 20px; line-height: 1.1; background: #fff; border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 8px 4px; cursor: pointer; min-width: 2.4em; text-align: center;
+}
+.hjcand small { display: block; font-family: var(--sans); font-size: 10px; color: var(--soft); margin-top: 2px; }
+.hjcand.sel { border-color: var(--water); background: #eaf0f6; box-shadow: 0 0 0 2px rgba(36, 70, 107, .15); }
+.hjmore { margin-top: 8px; font-size: 13px; color: var(--water); background: none; border: 0; padding: 4px 0; cursor: pointer; text-decoration: underline; }
+@media (max-width: 560px) {
+  .hjinput-row { flex-wrap: wrap; }
+  .hjinput-row .input { flex: 1 1 100%; }
+  .hjinput-row .btn-ghost { flex: 1 1 100%; }
+}
 /* PDF로 뜰 때(pdf.js가 복제 화면에만 붙임) */
 .pdf-mode body { background: #fff; }
 .pdf-mode .no-print, .pdf-mode .admin-dot, .pdf-mode .hero, .pdf-mode .foot, .pdf-mode form.entry, .pdf-mode .admin-head { display: none !important; }

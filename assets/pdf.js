@@ -13,6 +13,14 @@ const LIBS = [
   ["html2canvas", "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"],
   ["jspdf", "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"],
 ];
+/* 카카오톡·인스타그램 등 앱 안 브라우저(웹뷰)는 자동 다운로드를 막는 경우가 있다.
+   이런 곳에서는 (1) 미리 안내를 보여 주고 (2) 자동 저장 시도와 별개로,
+   사람이 직접 누르는 실제 링크를 남겨 둔다. 스크립트가 대신 눌러 주는 동작은
+   막혀도, 사람이 직접 누르는 링크는 되는 경우가 많기 때문이다. */
+export function isAppWebview() {
+  const ua = navigator.userAgent || "";
+  return /KAKAOTALK|Instagram|FBAN|FBAV|NAVER\(inapp|Line\/|MicroMessenger|BAND\/|; ?wv\)/i.test(ua);
+}
 const WIDTH = 760;          // 뜨는 폭(px)
 const MARGIN = 12;          // 쪽 여백(mm)
 const FOOT = 6;             // 쪽 번호 자리(mm)
@@ -152,9 +160,28 @@ export async function saveReportPdf(root, filename, onProgress = () => {}) {
       pdf.setPage(p);
       pdf.text(`${p} / ${n}`, pageW / 2, pageH - MARGIN + 2, { align: "center" });
     }
-    pdf.save(filename);
+    return pdf;
   } finally {
     window.scrollTo(0, prevScroll);
+  }
+}
+
+// pdf.save(filename)는 내부에서 숨은 링크를 스크립트로 대신 눌러 준다. 보통 브라우저에서는
+// 이것으로 충분하지만, 일부 앱 안 브라우저는 스크립트가 누르는 동작을 막아 조용히 실패한다.
+// 그래서 같은 파일로 실제 눈에 보이는 링크도 함께 준비해, 자동 저장이 안 됐을 때 사람이
+// 직접 눌러 저장할 수 있게 한다.
+function saveWithFallback(pdf, filename, fallbackLink) {
+  const blob = pdf.output("blob");
+  const url = URL.createObjectURL(blob);
+  if (fallbackLink) {
+    fallbackLink.href = url;
+    fallbackLink.download = filename;
+    fallbackLink.hidden = false;
+  }
+  try {
+    pdf.save(filename);
+  } catch {
+    // 자동 저장이 막혀도 위에서 준비한 링크로 이어진다.
   }
 }
 
@@ -163,16 +190,23 @@ export function bindPdfButton(scope, filename) {
   const btn = scope.querySelector('[data-act="pdf"]');
   const hint = scope.querySelector("[data-pdf-hint]");
   const root = scope.querySelector("[data-pdf-root]");
+  const warn = scope.querySelector("[data-pdf-webview-warn]");
+  const fallback = scope.querySelector('[data-act="pdf-fallback"]');
   if (!btn || !root) return;
+  if (warn && isAppWebview()) warn.hidden = false;
   btn.addEventListener("click", async () => {
     btn.disabled = true;
     const label = btn.textContent;
     btn.textContent = "만드는 중…";
+    if (fallback) fallback.hidden = true;
     try {
-      await saveReportPdf(root, filename, (i, n) => { if (hint) hint.textContent = `PDF를 만드는 중입니다(${i}/${n}). 잠시 기다려 주세요.`; });
-      if (hint) hint.textContent = "PDF를 내려받았습니다. 다운로드 폴더나 파일 앱에서 확인하세요.";
+      const pdf = await saveReportPdf(root, filename, (i, n) => { if (hint) hint.textContent = `PDF를 만드는 중입니다(${i}/${n}). 잠시 기다려 주세요.`; });
+      saveWithFallback(pdf, filename, fallback);
+      if (hint) hint.textContent = fallback
+        ? "PDF를 내려받았습니다. 화면에 아무 변화가 없으면 아래 'PDF 파일 눌러서 저장'을 눌러 주세요."
+        : "PDF를 내려받았습니다. 다운로드 폴더나 파일 앱에서 확인하세요.";
     } catch (e) {
-      if (hint) hint.textContent = `PDF를 만들지 못했습니다. ${e.message || ""} 카카오톡 같은 앱 안에서 열었다면 '다른 브라우저로 열기'를 고른 뒤 다시 시도해 주세요.`;
+      if (hint) hint.textContent = `PDF를 만들지 못했습니다. ${e.message || ""} 카카오톡 같은 앱 안에서 열었다면 오른쪽 위 메뉴에서 '다른 브라우저로 열기'를 고른 뒤 다시 시도해 주세요.`;
     } finally {
       btn.disabled = false;
       btn.textContent = label;

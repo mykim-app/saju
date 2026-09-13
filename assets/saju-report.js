@@ -496,7 +496,9 @@ export function renderReport(chart, opts = {}) {
         <button class="btn" type="button" data-act="pdf">PDF로 저장</button>
         <button class="btn-ghost" type="button" data-act="print">인쇄</button>
       </div>
-      <p class="hint no-print" data-pdf-hint>PDF 파일이 바로 내려받아집니다. 내용이 쪽 경계에서 잘리지 않도록 나눠 담습니다.</p>`}
+      <p class="hint no-print" data-pdf-hint>PDF 파일이 바로 내려받아집니다. 내용이 쪽 경계에서 잘리지 않도록 나눠 담습니다.</p>
+      <p class="hint no-print" data-pdf-webview-warn hidden>지금 보고 계신 앱 안 화면에서는 파일 저장이 막힐 때가 있습니다. 오른쪽 위 메뉴(⋮ 또는 …)에서 <b>‘다른 브라우저로 열기’</b>를 고른 뒤 다시 눌러 보세요.</p>
+      <a class="btn no-print" data-act="pdf-fallback" hidden download style="text-decoration:none">PDF 파일 눌러서 저장</a>`}
     </section>`;
 
   return `

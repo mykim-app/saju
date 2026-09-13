@@ -14,7 +14,7 @@
      차이가 있어(특히 ㅁㅂㅍ, ㅇㅎ을 어디로 볼지), 참고용으로만 보여 줍니다.
 
    데이터 출처와 라이선스는 assets/hanja-data.js 주석 참고. */
-import { CHARS, READS, STROKES } from "./hanja-data.js";
+import { CHARS, READS, STROKES, KNOWN } from "./hanja-data.js";
 import { ELEMENTS, ELEMENTS_HJ } from "./saju-core.js";
 
 const IDX = new Map();
@@ -23,7 +23,7 @@ for (let i = 0; i < CHARS.length; i++) IDX.set(CHARS[i], i);
 export function hanjaInfo(ch) {
   const i = IDX.get(ch);
   if (i == null) return null;
-  return { char: ch, reading: READS[i], strokes: Number(STROKES.slice(i * 2, i * 2 + 2)) };
+  return { char: ch, reading: READS[i], strokes: Number(STROKES.slice(i * 2, i * 2 + 2)), known: KNOWN[i] === "1" };
 }
 
 export function elementOfStrokes(n) {
@@ -79,6 +79,51 @@ function readingMatches(typed, ch, reading) {
   if (typed === reading || leadingSoundRule(reading) === typed) return true;
   const alt = ALT_READ[ch] || "";
   return [...alt].some((r) => r === typed || leadingSoundRule(r) === typed);
+}
+
+let REVERSE = null;
+function buildReverse() {
+  if (REVERSE) return REVERSE;
+  REVERSE = new Map();
+  const add = (syll, ch) => {
+    if (!REVERSE.has(syll)) REVERSE.set(syll, []);
+    const arr = REVERSE.get(syll);
+    if (!arr.includes(ch)) arr.push(ch);
+  };
+  for (let i = 0; i < CHARS.length; i++) add(READS[i], CHARS[i]);
+  for (const [ch, alt] of Object.entries(ALT_READ)) for (const r of alt) add(r, ch);
+  // 사전에 뜻풀이가 있는(더 널리 쓰일 가능성이 큰) 글자를 앞에, 그 안에서는 획수가 적은 순으로 둔다.
+  for (const arr of REVERSE.values()) {
+    arr.sort((a, b) => {
+      const ia = hanjaInfo(a), ib = hanjaInfo(b);
+      if (ia.known !== ib.known) return ia.known ? -1 : 1;
+      return ia.strokes - ib.strokes;
+    });
+  }
+  return REVERSE;
+}
+
+// 한글 음(예: "민")으로 후보 한자를 찾는다. 획수 적은 순으로 정렬해 돌려준다.
+// 두음법칙이 적용된 음(예: "이")으로 찾을 때는 본래 음(리 등)의 후보도 함께 더한다.
+// 부수 변형 글자(氵忄扌艹辶阝礻衤耂)는 낱자로는 실제 이름에 쓰이지 않으므로 후보에서 뺀다.
+const RADICAL_ONLY = new Set([..."氵忄扌艹辶阝礻衤耂"]);
+
+export function candidatesFor(syll) {
+  const set = new Map();
+  const put = (ch) => { if (!RADICAL_ONLY.has(ch) && !set.has(ch)) set.set(ch, hanjaInfo(ch)); };
+  (buildReverse().get(syll) || []).forEach(put);
+  const code = syll.charCodeAt(0) - 0xac00;
+  if (code >= 0 && code <= 11171) {
+    const jung = Math.floor((code % 588) / 28), jong = code % 28;
+    const cho = Math.floor(code / 588);
+    if (cho === 11) { // ㅇ으로 시작 → 두음법칙 전 ㄹ·ㄴ 음도 찾아본다
+      (buildReverse().get(String.fromCharCode(0xac00 + 5 * 588 + jung * 28 + jong)) || []).forEach(put);
+      (buildReverse().get(String.fromCharCode(0xac00 + 2 * 588 + jung * 28 + jong)) || []).forEach(put);
+    } else if (cho === 2) { // ㄴ으로 시작 → 두음법칙 전 ㄹ 음도 찾아본다
+      (buildReverse().get(String.fromCharCode(0xac00 + 5 * 588 + jung * 28 + jong)) || []).forEach(put);
+    }
+  }
+  return [...set.values()].sort((a, b) => (a.known !== b.known ? (a.known ? -1 : 1) : a.strokes - b.strokes));
 }
 
 const GEN = [1, 2, 3, 4, 0]; // 목생화 화생토 토생금 금생수 수생목
