@@ -22,13 +22,16 @@ function personLine(name, chart) {
 }
 
 export function renderCompatReport(nameA, chartA, nameB, chartB, opts = {}) {
-  const sok = sokAllowed(chartA, chartB);
+  const relType = opts.relType || "romantic";
+  const relLabel = G.REL_TYPE_LABEL[relType] || G.REL_TYPE_LABEL.romantic;
+  const sok = sokAllowed(chartA, chartB, relType);
   const r = analyzeCompat(chartA, chartB, { sok });
   const tagOf = (tag) => tag === "good" ? "좋음" : tag === "warn" ? "조심" : "보통";
 
   const head = `
     <header class="rhead" data-pdf-block>
       <h1>${esc(nameA)}님과 ${esc(nameB)}님의 궁합</h1>
+      <p class="hint" style="margin:2px 0 14px">${relLabel} 사이로 봤습니다.</p>
       <div class="row" style="gap:12px">${personLine(nameA, chartA)}${personLine(nameB, chartB)}</div>
     </header>`;
 
@@ -48,16 +51,17 @@ export function renderCompatReport(nameA, chartA, nameB, chartB, opts = {}) {
   </section>`;
 
   const ddaeSec = section("띠 궁합(연지)", `
-    <p><span class="tag ${r.year.tag}">${tagOf(r.year.tag)}</span> ${G.BRANCH_REL_TEXT[r.year.type]}${r.year.el ? ` 두 사람의 기운이 합쳐지면 ${elName(C.ELEMENTS.indexOf(r.year.el))} 기운이 됩니다.` : ""}</p>
-    <p class="hint">띠 궁합은 태어난 해의 지지(연지)로 보는, 가장 널리 알려진 궁합법입니다. 서로 만나는 자리(부부·연인·동업 등)와 상관없이 보는 큰 틀의 궁합입니다.</p>`);
+    <p><span class="tag ${r.year.tag}">${tagOf(r.year.tag)}</span> ${G.branchRelText(r.year.type, relType)}${r.year.el ? ` 두 사람의 기운이 합쳐지면 ${elName(C.ELEMENTS.indexOf(r.year.el))} 기운이 됩니다.` : ""}</p>
+    <p class="hint">띠 궁합은 태어난 해의 지지(연지)로 보는, 가장 널리 알려진 궁합법입니다. 서로 만나는 자리(부부·연인·친구·동업 등)와 상관없이 보는 큰 틀의 궁합입니다.</p>`);
 
   const iljuSec = section("일간 궁합", `
     <p><span class="tag ${r.dayStem.tag}">${tagOf(r.dayStem.tag)}</span> ${typeof G.STEM_REL_TEXT[r.dayStem.type] === "string" ? G.STEM_REL_TEXT[r.dayStem.type] : G.STEM_REL_TEXT[r.dayStem.type][r.dayStem.dir]}${r.dayStem.el ? ` 두 기운이 합쳐지면 ${elName(C.ELEMENTS.indexOf(r.dayStem.el))} 기운이 됩니다.` : ""}</p>
     <p class="hint">일간은 태어난 날의 천간으로, 나 자신을 뜻합니다. 성향이나 대화 방식이 얼마나 잘 맞는지를 봅니다.</p>`);
 
-  const sokSec = section("속궁합", sok ? `
+  // 속궁합은 연인·부부 사이일 때만 다룬다. 친구·동료, 가족 사이라면 아예 다루지 않는다(조건 안내도 필요 없음).
+  const sokSec = relType !== "romantic" ? "" : section("속궁합", sok ? `
     <p class="sub-h">일지(땅의 기운, 배우자 자리)끼리</p>
-    <p><span class="tag ${r.dayBranch.tag}">${tagOf(r.dayBranch.tag)}</span> ${G.BRANCH_REL_TEXT[r.dayBranch.type]}${r.dayBranch.el ? ` 두 사람의 기운이 합쳐지면 ${elName(C.ELEMENTS.indexOf(r.dayBranch.el))} 기운이 됩니다.` : ""}</p>
+    <p><span class="tag ${r.dayBranch.tag}">${tagOf(r.dayBranch.tag)}</span> ${G.branchRelText(r.dayBranch.type, relType)}${r.dayBranch.el ? ` 두 사람의 기운이 합쳐지면 ${elName(C.ELEMENTS.indexOf(r.dayBranch.el))} 기운이 됩니다.` : ""}</p>
     <p class="hint">일지는 배우자 자리로 보아, 애정·결혼 궁합에서는 다른 무엇보다 이 관계를 무겁게 봅니다.</p>
     <p class="sub-h">납음오행</p>
     <p><span class="tag ${r.nayin.tag}">${tagOf(r.nayin.tag)}</span> ${G.NAYIN_REL_TEXT[r.nayin.type]}</p>
@@ -67,8 +71,8 @@ export function renderCompatReport(nameA, chartA, nameB, chartB, opts = {}) {
   `);
 
   const tgSec = section("서로에게 어떤 자리인지(십성)", `
-    <p><b>${esc(nameB)}님</b>은 ${esc(nameA)}님에게 — ${G.COMPAT_TEN_GOD_TEXT[r.tgBonA]} <span class="hint">(${C.TEN_GODS[r.tgBonA]})</span></p>
-    <p><b>${esc(nameA)}님</b>은 ${esc(nameB)}님에게 — ${G.COMPAT_TEN_GOD_TEXT[r.tgAonB]} <span class="hint">(${C.TEN_GODS[r.tgAonB]})</span></p>
+    <p><b>${esc(nameB)}님</b>은 ${esc(nameA)}님에게 — ${G.tenGodCompatText(r.tgBonA, relType)} <span class="hint">(${C.TEN_GODS[r.tgBonA]})</span></p>
+    <p><b>${esc(nameA)}님</b>은 ${esc(nameB)}님에게 — ${G.tenGodCompatText(r.tgAonB, relType)} <span class="hint">(${C.TEN_GODS[r.tgAonB]})</span></p>
     <p class="hint">십성은 상대의 일간을 내 일간 기준으로 보았을 때의 관계입니다. 두 사람이 서로에게 같은 자리로 보이지 않는 것이 자연스럽습니다.</p>`);
 
   const flowSec = section("오행으로 서로 채워 주는 정도", `

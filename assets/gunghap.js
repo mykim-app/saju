@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 import * as C from "./saju-core.js";
 import { renderCompatReport } from "./gunghap-report.js";
+import { REL_TYPE_LABEL } from "./compat-data.js";
 import { pillarsText } from "./saju-report.js";
 import { bindPdfButton } from "./pdf.js";
 
@@ -11,7 +12,7 @@ const sb = configured ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { 
 const pad = (n) => String(n).padStart(2, "0");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-let last = null; // { a: {...}, b: {...} }
+let last = null; // { relType, a: {...}, b: {...} }
 
 /* 오늘 인원 */
 async function loadCount() {
@@ -91,8 +92,16 @@ function personFields(prefix, label, v) {
 function renderForm(msg) {
   const va = (last && last.a) || DEFAULT_PERSON;
   const vb = (last && last.b) || DEFAULT_PERSON;
+  const relType = (last && last.relType) || "romantic";
   app.innerHTML = `
   <form class="entry" id="f" novalidate>
+    <fieldset class="field" style="border:0;padding:0;margin:0">
+      <legend class="label">어떤 사이인가요?</legend>
+      <div class="seg">
+        ${Object.entries(REL_TYPE_LABEL).map(([v, label]) => `<label><input type="radio" name="relType" value="${v}" ${relType === v ? "checked" : ""}><span>${label}</span></label>`).join("")}
+      </div>
+      <p class="help">연인·부부일 때만 속궁합(배우자 자리·납음오행)까지 함께 봅니다. 친구·동료, 가족은 나머지 궁합만 봅니다.</p>
+    </fieldset>
     ${personFields("a", "사람 1", va)}
     ${personFields("b", "사람 2", vb)}
     <div id="msg">${msg ? `<div class="err">${esc(msg)}</div>` : ""}</div>
@@ -143,8 +152,8 @@ function pdfName(chartA, chartB) {
   return `궁합풀이_${clean(chartA.input.name)}_${clean(chartB.input.name)}.pdf`;
 }
 
-function showResult(chartA, chartB) {
-  const html = renderCompatReport(chartA.input.name, chartA, chartB.input.name, chartB);
+function showResult(chartA, chartB, relType) {
+  const html = renderCompatReport(chartA.input.name, chartA, chartB.input.name, chartB, { relType });
   app.innerHTML = `${html}<p class="hint no-print" style="margin-top:16px"><a href="#" id="again">← 다시 입력하기</a></p><div id="save-msg" class="no-print" style="margin-top:12px"></div>`;
   document.getElementById("again").addEventListener("click", (e) => { e.preventDefault(); renderForm(); window.scrollTo(0, 0); });
   app.querySelector('[data-act="print"]')?.addEventListener("click", () => window.print());
@@ -169,10 +178,15 @@ function personRow(prefix, v, chart) {
   return row;
 }
 
-async function save(va, vb, chartA, chartB) {
+async function save(va, vb, chartA, chartB, relType) {
   if (!sb) return;
-  const row = { ...personRow("a", va, chartA), ...personRow("b", vb, chartB) };
-  const { error } = await sb.from("gunghap_results").insert(row);
+  const row = { rel_type: relType, ...personRow("a", va, chartA), ...personRow("b", vb, chartB) };
+  let { error } = await sb.from("gunghap_results").insert(row);
+  // 데이터베이스에 관계 종류 칸을 아직 만들지 않았으면(schema.sql 재실행 전) 그 칸 없이 다시 저장한다.
+  if (error && /rel_type/.test(error.message || "")) {
+    delete row.rel_type;
+    ({ error } = await sb.from("gunghap_results").insert(row));
+  }
   const box = document.getElementById("save-msg");
   if (error && box) box.innerHTML = `<div class="err">궁합 기록을 저장하지 못했습니다. 관리자에게 알려 주세요. <span class="hint">${esc(error.message)}</span></div>`;
   loadCount();
@@ -182,14 +196,15 @@ function onSubmit(e) {
   e.preventDefault();
   const el = e.target.elements;
   const va = readPerson(el, "a"), vb = readPerson(el, "b");
+  const relType = el.relType.value || "romantic";
   const msg = validatePerson(va, "사람 1") || validatePerson(vb, "사람 2");
   if (msg) { renderForm(msg); return; }
-  last = { a: va, b: vb };
+  last = { relType, a: va, b: vb };
   try {
     const chartA = C.buildChart(toChartInput(va));
     const chartB = C.buildChart(toChartInput(vb));
-    showResult(chartA, chartB);
-    save(va, vb, chartA, chartB);
+    showResult(chartA, chartB, relType);
+    save(va, vb, chartA, chartB, relType);
   } catch (err) {
     renderForm(`계산 중 문제가 생겼습니다: ${err.message || err}`);
   }

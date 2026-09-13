@@ -103,7 +103,10 @@ export function ageManOf(chart) {
   return age;
 }
 
-// 속궁합(일지·납음오행)을 보여 줘도 되는 경우인지: 둘 다 만 20세 이상이고, 성별이 남녀 한 쌍일 때만.
-export function sokAllowed(chartA, chartB) {
-  return ageManOf(chartA) >= 20 && ageManOf(chartB) >= 20 && chartA.input.gender !== chartB.input.gender;
+// 속궁합(일지·납음오행)을 보여 줘도 되는 경우인지: 관계가 연인·부부이고,
+// 둘 다 만 20세 이상이고, 성별이 남녀 한 쌍일 때만.
+export function sokAllowed(chartA, chartB, relType = "romantic") {
+  return relType === "romantic"
+    && ageManOf(chartA) >= 20 && ageManOf(chartB) >= 20
+    && chartA.input.gender !== chartB.input.gender;
 }

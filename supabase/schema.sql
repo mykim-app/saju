@@ -120,6 +120,10 @@ create table if not exists public.gunghap_results (
 );
 create index if not exists gunghap_results_created_at_idx on public.gunghap_results (created_at desc);
 
+-- 관계 종류(연인·부부/친구·동료/가족) — 기존에 표가 이미 있던 경우를 위해 나중에 추가
+alter table public.gunghap_results add column if not exists rel_type text not null default 'romantic'
+  check (rel_type in ('romantic', 'friend', 'family'));
+
 alter table public.gunghap_results enable row level security;
 revoke all on public.gunghap_results from anon, authenticated;
 grant insert on public.gunghap_results to anon, authenticated;

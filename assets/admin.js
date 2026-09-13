@@ -3,6 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, OTP_LENGTH, OTP_WINDOW_SECONDS, IDLE_M
 import * as C from "./saju-core.js";
 import { renderReport } from "./saju-report.js";
 import { renderCompatReport } from "./gunghap-report.js";
+import { REL_TYPE_LABEL } from "./compat-data.js";
 import { bindPdfButton } from "./pdf.js";
 
 const app = document.getElementById("app");
@@ -169,7 +170,7 @@ async function renderList(msg) {
     </li>` : `
     <li class="card">
       <button class="open" data-id="${r.id}" type="button">
-        <span class="nm">${esc(r.a_name)} · ${esc(r.b_name)}</span>
+        <span class="nm">${esc(r.a_name)} · ${esc(r.b_name)} <span class="hint">(${esc(REL_TYPE_LABEL[r.rel_type] || REL_TYPE_LABEL.romantic)})</span></span>
         <span class="pz">${esc(String(r.a_pillars || "").replace("--", "(시 모름)"))} / ${esc(String(r.b_pillars || "").replace("--", "(시 모름)"))}</span>
         <span class="meta">${esc(r.a_birth_date)}(${r.a_gender === "M" ? "남" : "여"}) · ${esc(r.b_birth_date)}(${r.b_gender === "M" ? "남" : "여"})</span>
         <span class="meta">등록 ${fmt(r.created_at)}</span>
@@ -229,7 +230,7 @@ function openRecord(r) {
           hour: hh, minute: mm, timeUnknown: !r[`${p}_birth_time`], region: r[`${p}_region`], yajasi: r[`${p}_yajasi`] });
       };
       const chartA = mk("a"), chartB = mk("b");
-      html = renderCompatReport(r.a_name, chartA, r.b_name, chartB, { hidePrint: false });
+      html = renderCompatReport(r.a_name, chartA, r.b_name, chartB, { hidePrint: false, relType: r.rel_type || "romantic" });
       filename = `궁합풀이_${clean(r.a_name)}_${clean(r.b_name)}.pdf`;
     }
   } catch (err) {

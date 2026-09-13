@@ -1,5 +1,11 @@
 /* 궁합 풀이에 쓰는 문구. saju-data.js와 분리해 둔다(같은 십신이라도
-   "내 사주에 있으면"과 "상대가 나에게 어떤 자리면"은 다른 문장이 필요해서). */
+   "내 사주에 있으면"과 "상대가 나에게 어떤 자리면"은 다른 문장이 필요해서).
+
+   궁합은 연인·부부만이 아니라 친구·동료, 가족 사이에도 본다. 대부분의 문구는
+   그대로 써도 되지만, 몇몇 문구(귀문·편관)는 연애 감정을 전제로 쓴 표현이라
+   관계 종류에 따라 다른 문장을 준비해 두고, 없으면 기본 문구를 쓴다. */
+
+export const REL_TYPE_LABEL = { romantic: "연인·부부", friend: "친구·동료", family: "가족" };
 
 // 년지·일지 관계 문구(둘 다 같은 은행을 쓴다)
 export const BRANCH_REL_TEXT = {
@@ -15,6 +21,17 @@ export const BRANCH_REL_TEXT = {
   "동일": "같은 지지를 타고나 성향이나 생활 리듬이 비슷합니다.",
   "무관": "특별히 끌어당기거나 부딪히는 기운은 없는, 무난한 사이입니다.",
 };
+
+// 연애 감정을 전제로 쓴 문구는 관계 종류별로 다르게 준비해 둔다. 없는 조합은 기본 문구를 쓴다.
+const BRANCH_REL_OVERRIDE = {
+  "귀문": {
+    friend: "묘하게 자꾸 신경 쓰이고 생각나는 사이입니다. 서로 지나치게 얽매이거나 의심하지 않도록 적당한 거리를 두세요.",
+    family: "묘하게 마음이 많이 쓰이는 사이입니다. 서로 지나치게 얽매이지 않도록 적당한 거리도 필요합니다.",
+  },
+};
+export function branchRelText(type, relType) {
+  return (BRANCH_REL_OVERRIDE[type] && BRANCH_REL_OVERRIDE[type][relType]) || BRANCH_REL_TEXT[type];
+}
 
 // 일간(천간) 관계 문구
 export const STEM_REL_TEXT = {
@@ -47,3 +64,14 @@ export const COMPAT_TEN_GOD_TEXT = [
   "나에게 남다른 자극과 생각을 주는 사람입니다. 신비롭게 느껴지지만 거리감이 들 때도 있습니다.",
   "나를 편안하게 감싸 주는 사람입니다. 의지가 되지만 너무 기대면 수동적이 되기 쉽습니다.",
 ];
+
+// 십성 인덱스: 0비견 1겁재 2식신 3상관 4편재 5정재 6편관 7정관 8편인 9정인
+const TEN_GOD_OVERRIDE = {
+  6: {
+    friend: "나를 긴장하게 만들고 이끄는 사람입니다. 대단하게 느껴지지만 그만큼 부담도 될 수 있습니다.",
+    family: "나를 긴장하게 만들고 이끄는 사람입니다. 든든하게 느껴지지만 그만큼 부담도 될 수 있습니다.",
+  },
+};
+export function tenGodCompatText(idx, relType) {
+  return (TEN_GOD_OVERRIDE[idx] && TEN_GOD_OVERRIDE[idx][relType]) || COMPAT_TEN_GOD_TEXT[idx];
+}
