@@ -281,9 +281,15 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
 .pcard-ilju { font-family: var(--serif); font-size: 20px; margin: 6px 0 0; }
 .pcard-ilju .hint { font-family: var(--sans); font-size: 12px; margin-left: 4px; }
 
-/* 처음 화면: 사주풀이·궁합보기 고르기 */
-.modesel { display: grid; gap: 14px; max-width: 420px; margin: 8px auto; padding: 12px 0 20px; }
-.modesel .btn, .modesel .btn-ghost { width: 100%; font-size: 18px; padding: 18px 20px; min-height: 60px; }
+/* 사주풀이·궁합 탭 */
+.modetabs { display: flex; gap: 4px; margin: 18px 0 22px; border-bottom: 1px solid var(--line); }
+.modetabs .tab {
+  padding: 10px 4px; font-weight: 700; color: var(--soft); text-decoration: none;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.modetabs .tab + .tab { margin-left: 16px; }
+.modetabs .tab.active { color: var(--ink); border-bottom-color: var(--water); }
+.modetabs .tab:hover { color: var(--ink); }
 /* PDF로 뜰 때(pdf.js가 복제 화면에만 붙임) */
 .pdf-mode body { background: #fff; }
 .pdf-mode .no-print, .pdf-mode .admin-dot, .pdf-mode .hero, .pdf-mode .foot, .pdf-mode form.entry, .pdf-mode .admin-head { display: none !important; }
