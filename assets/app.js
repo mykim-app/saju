@@ -32,6 +32,17 @@ async function loadCount() {
   el.textContent = error ? "-" : Number(data).toLocaleString("ko-KR");
 }
 
+/* 처음 화면: 사주풀이·궁합보기 중 고르기 */
+function renderModeSelect() {
+  app.innerHTML = `
+    <div class="modesel">
+      <button class="btn" type="button" data-mode="saju">사주풀이 보기</button>
+      <button class="btn-ghost" type="button" data-mode="gunghap">궁합 보기</button>
+    </div>`;
+  app.querySelector('[data-mode="saju"]').addEventListener("click", () => renderForm());
+  app.querySelector('[data-mode="gunghap"]').addEventListener("click", () => { location.href = "./gunghap.html"; });
+}
+
 /* 입력 화면 */
 function yearOptions(sel) {
   const now = C.todayKST().y;
@@ -44,6 +55,7 @@ const numOptions = (from, to, sel, unit) => { let h = ""; for (let i = from; i <
 function renderForm(msg) {
   const v = last || { name: "", hanja: "", gender: "", calendar: "solar", leap: false, y: 1990, m: 1, d: 1, time: "", timeUnknown: false, region: "seoul", yajasi: false };
   app.innerHTML = `
+  <p class="hint" style="margin:-4px 0 16px"><a href="#" id="to-modesel">← 처음으로(사주풀이·궁합 고르기)</a></p>
   <form class="entry" id="f" novalidate>
     <div class="field">
       <label class="label" for="name">이름</label>
@@ -112,6 +124,7 @@ function renderForm(msg) {
 
   const f = document.getElementById("f");
   const fe = f.elements;
+  document.getElementById("to-modesel").addEventListener("click", (e) => { e.preventDefault(); renderModeSelect(); });
   f.addEventListener("change", (e) => {
     if (e.target.name === "calendar") document.getElementById("leap-wrap").hidden = fe.calendar.value !== "lunar";
     if (e.target.name === "timeUnknown") { fe.time.disabled = e.target.checked; if (e.target.checked) fe.time.value = ""; }
@@ -260,7 +273,7 @@ async function save(v, chart) {
 
 try {
   renderToday();
-  renderForm();
+  renderModeSelect();
 } catch (err) {
   app.innerHTML = `<div class="err">화면을 준비하지 못했습니다. ${esc(err.message)}</div>`;
 }

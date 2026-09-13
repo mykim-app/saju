@@ -73,10 +73,24 @@ function personFields(prefix, label, v) {
   </fieldset>`;
 }
 
+/* 처음 화면: 사주풀이·궁합보기 중 고르기 */
+function renderModeSelect() {
+  document.getElementById("back-link").hidden = true;
+  app.innerHTML = `
+    <div class="modesel">
+      <button class="btn-ghost" type="button" data-mode="saju">사주풀이 보기</button>
+      <button class="btn" type="button" data-mode="gunghap">궁합 보기</button>
+    </div>`;
+  app.querySelector('[data-mode="saju"]').addEventListener("click", () => { location.href = "./index.html"; });
+  app.querySelector('[data-mode="gunghap"]').addEventListener("click", () => renderForm());
+}
+
 function renderForm(msg) {
+  document.getElementById("back-link").hidden = false;
   const va = (last && last.a) || DEFAULT_PERSON;
   const vb = (last && last.b) || DEFAULT_PERSON;
   app.innerHTML = `
+  <p class="hint" style="margin:-4px 0 16px"><a href="#" id="to-modesel">← 처음으로(사주풀이·궁합 고르기)</a></p>
   <form class="entry" id="f" novalidate>
     ${personFields("a", "사람 1", va)}
     ${personFields("b", "사람 2", vb)}
@@ -85,6 +99,7 @@ function renderForm(msg) {
   </form>`;
 
   const f = document.getElementById("f");
+  document.getElementById("to-modesel").addEventListener("click", (e) => { e.preventDefault(); renderModeSelect(); });
   f.addEventListener("change", (e) => {
     for (const p of ["a", "b"]) {
       if (e.target.name === `${p}_calendar`) document.getElementById(`${p}_leap-wrap`).hidden = f.elements[`${p}_calendar`].value !== "lunar";
@@ -153,4 +168,4 @@ function onSubmit(e) {
   }
 }
 
-renderForm();
+renderModeSelect();

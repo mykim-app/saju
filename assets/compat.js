@@ -60,7 +60,9 @@ export function nayinRelation(sa, ba, sb, bb) {
 
 // score: 합·상생 등 좋은 관계는 +, 충·상극 등은 - 로 더해 종합 등급을 매긴다.
 // 이 점수는 화면에 숫자로 보여 주지 않고, 좋음/보통/조심 세 등급으로만 쓴다.
-export function analyzeCompat(a, b) {
+// sok(속궁합) = false이면 일지(배우자 자리)·납음오행은 점수에 넣지 않는다.
+export function analyzeCompat(a, b, opts = {}) {
+  const sok = opts.sok !== false;
   const A = a.pillars, B = b.pillars;
   const year = branchRelation(A.year.b, B.year.b);
   const dayBranch = branchRelation(A.day.b, B.day.b);
@@ -80,14 +82,28 @@ export function analyzeCompat(a, b) {
   let score = 0;
   const bump = (rel, good = 2, warn = -2) => { if (rel.tag === "good") score += good; else if (rel.tag === "warn") score += warn; };
   bump(year, 2, -2);
-  bump(dayBranch, 3, -3); // 일지(배우자 자리)는 조금 더 크게 반영
+  if (sok) bump(dayBranch, 3, -3); // 일지(배우자 자리)는 속궁합을 볼 때만 크게 반영
   bump(dayStem, 2, -1);
-  bump(nayin, 1, -1);
+  if (sok) bump(nayin, 1, -1);
   score += Math.min(helpForA, 3) - hurtForA;
   score += Math.min(helpForB, 3) - hurtForB;
 
   const tier = score >= 5 ? "good" : score >= 0 ? "mid" : "warn";
   const label = { good: "좋음", mid: "보통", warn: "조심" }[tier];
 
-  return { year, dayBranch, dayStem, nayin, tgBonA, tgAonB, ysA, ysB, helpForA, hurtForA, helpForB, hurtForB, tier, label };
+  return { year, dayBranch, dayStem, nayin, tgBonA, tgAonB, ysA, ysB, helpForA, hurtForA, helpForB, hurtForB, tier, label, sok };
+}
+
+// 만 나이(생일이 지났는지까지 반영)
+export function ageManOf(chart) {
+  const s = chart.solar;
+  const t = C.todayKST();
+  let age = t.y - s.y;
+  if (t.m < s.m || (t.m === s.m && t.d < s.d)) age--;
+  return age;
+}
+
+// 속궁합(일지·납음오행)을 보여 줘도 되는 경우인지: 둘 다 만 20세 이상이고, 성별이 남녀 한 쌍일 때만.
+export function sokAllowed(chartA, chartB) {
+  return ageManOf(chartA) >= 20 && ageManOf(chartB) >= 20 && chartA.input.gender !== chartB.input.gender;
 }
