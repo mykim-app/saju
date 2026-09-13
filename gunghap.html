@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>사주풀이</title>
-<meta name="description" content="이름과 태어난 날·시각으로 사주 여덟 글자를 세우고 풀어 봅니다.">
+<title>궁합풀이</title>
+<meta name="description" content="두 사람의 태어난 날·시각으로 사주를 세우고 궁합을 풀어 봅니다.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Serif+KR:wght@400;700&display=swap">
@@ -15,24 +15,17 @@
   <main class="wrap">
     <header class="hero">
       <div>
-        <h1>사주풀이</h1>
-        <p>태어난 해·달·날·시를 여덟 글자로 세우고, 타고난 성향과 앞으로의 흐름을 풀어 드립니다.</p>
-      </div>
-      <div>
-        <div class="today" id="today" aria-label="오늘의 간지"></div>
-        <p class="today-cap" id="today-cap"></p>
+        <h1>궁합풀이</h1>
+        <p>두 사람의 태어난 날·시각으로 사주를 세우고, 띠·일주·오행으로 궁합을 풀어 드립니다.</p>
       </div>
     </header>
 
+    <p class="hint" style="margin:-8px 0 20px"><a href="./index.html">← 사주풀이로 돌아가기</a></p>
+
     <div id="app"></div>
-
-    <p class="hint" style="text-align:center;margin-top:8px"><a href="./gunghap.html">두 사람 궁합도 보기 →</a></p>
-
-    <footer class="foot" id="foot">오늘 사주를 본 사람 <b id="count">-</b>명</footer>
   </main>
-  <a class="admin-dot" href="./admin.html" aria-label="관리자 화면" title=""></a>
 
   <script src="./assets/vendor/lunar.js"></script>
-  <script type="module" src="./assets/app.js"></script>
+  <script type="module" src="./assets/gunghap.js"></script>
 </body>
 </html>

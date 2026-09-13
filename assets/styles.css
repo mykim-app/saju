@@ -271,6 +271,15 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
   .hjinput-row .input { flex: 1 1 100%; }
   .hjinput-row .btn-ghost { flex: 1 1 100%; }
 }
+
+/* 궁합 입력 폼 */
+.pblock { border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin: 0 0 20px; display: grid; gap: 16px; }
+.pblock-title { font-family: var(--serif); font-weight: 700; font-size: 18px; padding: 0 8px; }
+/* 궁합 결과 머리말의 두 사람 카드 */
+.pcard { flex: 1 1 220px; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: var(--paper-2); }
+.pcard-name { font-weight: 700; margin: 0 0 4px; }
+.pcard-ilju { font-family: var(--serif); font-size: 20px; margin: 6px 0 0; }
+.pcard-ilju .hint { font-family: var(--sans); font-size: 12px; margin-left: 4px; }
 /* PDF로 뜰 때(pdf.js가 복제 화면에만 붙임) */
 .pdf-mode body { background: #fff; }
 .pdf-mode .no-print, .pdf-mode .admin-dot, .pdf-mode .hero, .pdf-mode .foot, .pdf-mode form.entry, .pdf-mode .admin-head { display: none !important; }
