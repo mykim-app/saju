@@ -286,6 +286,7 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
 .modetabs .tab {
   padding: 10px 4px; font-weight: 700; color: var(--soft); text-decoration: none;
   border-bottom: 2px solid transparent; margin-bottom: -1px;
+  background: none; border-left: 0; border-right: 0; border-top: 0; font: inherit; cursor: pointer;
 }
 .modetabs .tab + .tab { margin-left: 16px; }
 .modetabs .tab.active { color: var(--ink); border-bottom-color: var(--water); }

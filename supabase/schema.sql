@@ -91,6 +91,68 @@ $$;
 revoke all on function public.saju_today_count() from public;
 grant execute on function public.saju_today_count() to anon, authenticated;
 
+-- 5) 궁합 기록 표(두 사람 몫을 a_·b_ 접두사로 한 줄에 저장)
+create table if not exists public.gunghap_results (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  a_name text not null check (char_length(a_name) between 1 and 20),
+  a_gender text not null check (a_gender in ('M', 'F')),
+  a_calendar text not null check (a_calendar in ('solar', 'lunar')),
+  a_is_leap boolean not null default false,
+  a_birth_date text not null check (a_birth_date ~ '^\d{4}-\d{2}-\d{2}$'),
+  a_solar_date date not null,
+  a_birth_time text check (a_birth_time is null or a_birth_time ~ '^\d{2}:\d{2}$'),
+  a_region text not null default 'seoul' check (char_length(a_region) <= 20),
+  a_yajasi boolean not null default false,
+  a_pillars text not null check (char_length(a_pillars) <= 20),
+  a_day_master text check (char_length(a_day_master) <= 10),
+  b_name text not null check (char_length(b_name) between 1 and 20),
+  b_gender text not null check (b_gender in ('M', 'F')),
+  b_calendar text not null check (b_calendar in ('solar', 'lunar')),
+  b_is_leap boolean not null default false,
+  b_birth_date text not null check (b_birth_date ~ '^\d{4}-\d{2}-\d{2}$'),
+  b_solar_date date not null,
+  b_birth_time text check (b_birth_time is null or b_birth_time ~ '^\d{2}:\d{2}$'),
+  b_region text not null default 'seoul' check (char_length(b_region) <= 20),
+  b_yajasi boolean not null default false,
+  b_pillars text not null check (char_length(b_pillars) <= 20),
+  b_day_master text check (char_length(b_day_master) <= 10)
+);
+create index if not exists gunghap_results_created_at_idx on public.gunghap_results (created_at desc);
+
+alter table public.gunghap_results enable row level security;
+revoke all on public.gunghap_results from anon, authenticated;
+grant insert on public.gunghap_results to anon, authenticated;
+grant select, delete on public.gunghap_results to authenticated;
+
+-- 누구나 등록할 수 있다(읽기는 불가) — 사주 기록 표와 같은 방식.
+drop policy if exists "누구나 등록" on public.gunghap_results;
+create policy "누구나 등록"
+  on public.gunghap_results for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "관리자 조회" on public.gunghap_results;
+create policy "관리자 조회"
+  on public.gunghap_results for select
+  to authenticated
+  using (public.is_admin());
+
+drop policy if exists "관리자 삭제" on public.gunghap_results;
+create policy "관리자 삭제"
+  on public.gunghap_results for delete
+  to authenticated
+  using (public.is_admin());
+
+-- 6) 오늘(한국 시간) 궁합 등록 인원
+create or replace function public.gunghap_today_count() returns integer
+language sql stable security definer set search_path = public as $$
+  select count(*)::int from public.gunghap_results
+  where created_at >= (date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul');
+$$;
+revoke all on function public.gunghap_today_count() from public;
+grant execute on function public.gunghap_today_count() to anon, authenticated;
+
 -- ─────────────────────────────────────────────────────────────
 -- 관리자 주소는 MBTI 사이트 때 이미 등록했다면 다시 넣을 필요가 없습니다.
 -- 확인:  select email from public.admins;

@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, OTP_LENGTH, OTP_WINDOW_SECONDS, IDLE_MINUTES, PER_PAGE } from "./config.js";
 import * as C from "./saju-core.js";
 import { renderReport } from "./saju-report.js";
+import { renderCompatReport } from "./gunghap-report.js";
 import { bindPdfButton } from "./pdf.js";
 
 const app = document.getElementById("app");
@@ -20,6 +21,7 @@ let idleTimer = null;
 let loggedIn = false;
 let page = 1;
 let query = "";
+let kind = "saju"; // "saju" 또는 "gunghap" — 지금 보고 있는 기록 종류
 
 const stopOtpTimer = () => { if (otpTimer) { clearInterval(otpTimer); otpTimer = null; } };
 
@@ -104,21 +106,50 @@ function renderVerify(msg) {
     loggedIn = true;
     bumpIdle();
     history.replaceState(null, "", location.pathname);
-    page = 1; query = "";
+    page = 1; query = ""; kind = "saju";
     renderList();
   });
 }
 
 /* ── 기록 목록 ───────────────────────────────── */
+function headHtml(title) {
+  return `<div class="admin-head">
+    <h1>${title}</h1>
+    <div class="row" style="flex:0 0 auto">
+      <a class="btn-ghost" href="./" style="text-decoration:none">사주풀이</a>
+      <button class="btn-ghost" id="out">로그아웃</button>
+    </div>
+  </div>
+  <nav class="modetabs no-print">
+    <button type="button" class="tab ${kind === "saju" ? "active" : ""}" data-kind="saju">사주 기록</button>
+    <button type="button" class="tab ${kind === "gunghap" ? "active" : ""}" data-kind="gunghap">궁합 기록</button>
+  </nav>`;
+}
+
+function bindTabs() {
+  document.getElementById("out").addEventListener("click", () => logout("로그아웃했습니다."));
+  app.querySelectorAll("[data-kind]").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.kind === kind) return;
+    kind = b.dataset.kind; page = 1; query = "";
+    renderList();
+  }));
+}
+
 async function renderList(msg) {
   if (!loggedIn) return renderRequest();
-  app.innerHTML = `<div class="admin-head"><h1>사주 기록</h1><div class="row" style="flex:0 0 auto"><a class="btn-ghost" href="./" style="text-decoration:none">사주풀이</a><button class="btn-ghost" id="out">로그아웃</button></div></div><p>불러오는 중입니다.</p>`;
-  document.getElementById("out").addEventListener("click", () => logout("로그아웃했습니다."));
+  const title = kind === "saju" ? "사주 기록" : "궁합 기록";
+  app.innerHTML = `${headHtml(title)}<p>불러오는 중입니다.</p>`;
+  bindTabs();
 
+  const table = kind === "saju" ? "saju_results" : "gunghap_results";
+  const countFn = kind === "saju" ? "saju_today_count" : "gunghap_today_count";
   const from = (page - 1) * PER_PAGE;
-  let q = sb.from("saju_results").select("*", { count: "exact" }).order("created_at", { ascending: false }).range(from, from + PER_PAGE - 1);
-  if (query) q = q.ilike("name", `%${query.replace(/[%_]/g, "")}%`);
-  const [{ data: rows, count, error }, { data: today }] = await Promise.all([q, sb.rpc("saju_today_count")]);
+  let q = sb.from(table).select("*", { count: "exact" }).order("created_at", { ascending: false }).range(from, from + PER_PAGE - 1);
+  if (query) {
+    const qq = query.replace(/[%_]/g, "");
+    q = kind === "saju" ? q.ilike("name", `%${qq}%`) : q.or(`a_name.ilike.%${qq}%,b_name.ilike.%${qq}%`);
+  }
+  const [{ data: rows, count, error }, { data: today }] = await Promise.all([q, sb.rpc(countFn)]);
   if (!loggedIn) return;
   if (error) {
     app.querySelector("p").outerHTML = `<div class="err">기록을 불러오지 못했습니다. ${esc(error.message)}</div>`;
@@ -126,7 +157,7 @@ async function renderList(msg) {
   }
   const pages = Math.max(1, Math.ceil((count || 0) / PER_PAGE));
   const fmt = (t) => new Date(t).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
-  const cards = rows.map((r) => `
+  const cards = rows.map((r) => kind === "saju" ? `
     <li class="card">
       <button class="open" data-id="${r.id}" type="button">
         <span class="nm">${esc(r.name)}</span>
@@ -135,10 +166,19 @@ async function renderList(msg) {
         <span class="meta">${esc(REGION_NAME[r.region] || r.region)} · 등록 ${fmt(r.created_at)}</span>
       </button>
       <button class="btn-ghost btn-danger del" data-del="${r.id}" data-name="${esc(r.name)}" type="button">지우기</button>
+    </li>` : `
+    <li class="card">
+      <button class="open" data-id="${r.id}" type="button">
+        <span class="nm">${esc(r.a_name)} · ${esc(r.b_name)}</span>
+        <span class="pz">${esc(String(r.a_pillars || "").replace("--", "(시 모름)"))} / ${esc(String(r.b_pillars || "").replace("--", "(시 모름)"))}</span>
+        <span class="meta">${esc(r.a_birth_date)}(${r.a_gender === "M" ? "남" : "여"}) · ${esc(r.b_birth_date)}(${r.b_gender === "M" ? "남" : "여"})</span>
+        <span class="meta">등록 ${fmt(r.created_at)}</span>
+      </button>
+      <button class="btn-ghost btn-danger del" data-del="${r.id}" data-name="${esc(r.a_name)}·${esc(r.b_name)}" type="button">지우기</button>
     </li>`).join("");
 
   app.innerHTML = `
-    <div class="admin-head"><h1>사주 기록</h1><div class="row" style="flex:0 0 auto"><a class="btn-ghost" href="./" style="text-decoration:none">사주풀이</a><button class="btn-ghost" id="out">로그아웃</button></div></div>
+    ${headHtml(title)}
     <dl class="stats"><div><dt>오늘</dt><dd>${today ?? "-"}명</dd></div><div><dt>${query ? "찾은 기록" : "전체"}</dt><dd>${count ?? 0}건</dd></div></dl>
     <form id="sf" class="row" style="margin-bottom:8px">
       <input class="input" id="sq" placeholder="이름으로 찾기" value="${esc(query)}" aria-label="이름으로 찾기">
@@ -153,7 +193,7 @@ async function renderList(msg) {
       <button class="btn-ghost" id="next" ${page >= pages ? "disabled" : ""}>다음</button>
     </div>`;
 
-  document.getElementById("out").addEventListener("click", () => logout("로그아웃했습니다."));
+  bindTabs();
   document.getElementById("sf").addEventListener("submit", (e) => { e.preventDefault(); query = document.getElementById("sq").value.trim(); page = 1; renderList(); });
   document.getElementById("clr")?.addEventListener("click", () => { query = ""; page = 1; renderList(); });
   document.getElementById("prev").addEventListener("click", () => { page--; renderList(); });
@@ -161,7 +201,7 @@ async function renderList(msg) {
   app.querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => openRecord(rows.find((r) => r.id === b.dataset.id))));
   app.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
     if (!confirm(`${b.dataset.name}님의 기록을 지웁니다. 되돌릴 수 없습니다.`)) return;
-    const { error: de } = await sb.from("saju_results").delete().eq("id", b.dataset.del);
+    const { error: de } = await sb.from(table).delete().eq("id", b.dataset.del);
     if (de) { alert(`지우지 못했습니다. ${de.message}`); return; }
     if (rows.length === 1 && page > 1) page--;
     renderList("기록을 지웠습니다.");
@@ -171,15 +211,30 @@ async function renderList(msg) {
 /* ── 기록 한 건 풀이 보기 ─────────────────────── */
 function openRecord(r) {
   if (!r) return;
-  const [y, m, d] = r.birth_date.split("-").map(Number);
-  const [hh, mm] = r.birth_time ? r.birth_time.split(":").map(Number) : [12, 0];
-  let html;
+  const clean = (s) => String(s || "기록").replace(/[\\/:*?"<>|]/g, "");
+  let html, filename;
   try {
-    const chart = C.buildChart({ name: r.name, hanja: r.hanja_name || "", gender: r.gender, calendar: r.calendar, leap: r.is_leap, y, m, d,
-      hour: hh, minute: mm, timeUnknown: !r.birth_time, region: r.region, yajasi: r.yajasi });
-    html = renderReport(chart, { hidePrint: false });
+    if (kind === "saju") {
+      const [y, m, d] = r.birth_date.split("-").map(Number);
+      const [hh, mm] = r.birth_time ? r.birth_time.split(":").map(Number) : [12, 0];
+      const chart = C.buildChart({ name: r.name, hanja: r.hanja_name || "", gender: r.gender, calendar: r.calendar, leap: r.is_leap, y, m, d,
+        hour: hh, minute: mm, timeUnknown: !r.birth_time, region: r.region, yajasi: r.yajasi });
+      html = renderReport(chart, { hidePrint: false });
+      filename = `사주풀이_${clean(r.name)}_${r.birth_date.replaceAll("-", "")}.pdf`;
+    } else {
+      const mk = (p) => {
+        const [y, m, d] = r[`${p}_birth_date`].split("-").map(Number);
+        const [hh, mm] = r[`${p}_birth_time`] ? r[`${p}_birth_time`].split(":").map(Number) : [12, 0];
+        return C.buildChart({ name: r[`${p}_name`], gender: r[`${p}_gender`], calendar: r[`${p}_calendar`], leap: r[`${p}_is_leap`], y, m, d,
+          hour: hh, minute: mm, timeUnknown: !r[`${p}_birth_time`], region: r[`${p}_region`], yajasi: r[`${p}_yajasi`] });
+      };
+      const chartA = mk("a"), chartB = mk("b");
+      html = renderCompatReport(r.a_name, chartA, r.b_name, chartB, { hidePrint: false });
+      filename = `궁합풀이_${clean(r.a_name)}_${clean(r.b_name)}.pdf`;
+    }
   } catch (err) {
     html = `<div class="err">풀이를 다시 만들지 못했습니다. ${esc(err.message)}</div>`;
+    filename = "기록.pdf";
   }
   app.innerHTML = `
     <div class="admin-head no-print"><h1>기록 보기</h1><button class="btn-ghost" id="back">목록으로</button></div>
@@ -187,7 +242,7 @@ function openRecord(r) {
   window.scrollTo({ top: 0 });
   document.getElementById("back").addEventListener("click", () => renderList());
   app.querySelector('[data-act="print"]')?.addEventListener("click", () => window.print());
-  bindPdfButton(app, `사주풀이_${(r.name || "기록").replace(/[\\/:*?"<>|]/g, "")}_${r.birth_date.replaceAll("-", "")}.pdf`);
+  bindPdfButton(app, filename);
 }
 
 renderRequest();

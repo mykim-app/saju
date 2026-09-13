@@ -1,11 +1,26 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 import * as C from "./saju-core.js";
 import { renderCompatReport } from "./gunghap-report.js";
+import { pillarsText } from "./saju-report.js";
 import { bindPdfButton } from "./pdf.js";
 
 const app = document.getElementById("app");
+const configured = !SUPABASE_URL.includes("여기에") && !SUPABASE_ANON_KEY.includes("여기에");
+const sb = configured ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
+const pad = (n) => String(n).padStart(2, "0");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 let last = null; // { a: {...}, b: {...} }
+
+/* 오늘 인원 */
+async function loadCount() {
+  const el = document.getElementById("count");
+  if (!el) return;
+  if (!sb) { el.textContent = "-"; return; }
+  const { data, error } = await sb.rpc("gunghap_today_count");
+  el.textContent = error ? "-" : Number(data).toLocaleString("ko-KR");
+}
 
 function yearOptions(sel) {
   const now = C.todayKST().y;
@@ -130,11 +145,37 @@ function pdfName(chartA, chartB) {
 
 function showResult(chartA, chartB) {
   const html = renderCompatReport(chartA.input.name, chartA, chartB.input.name, chartB);
-  app.innerHTML = `${html}<p class="hint no-print" style="margin-top:16px"><a href="#" id="again">← 다시 입력하기</a></p>`;
+  app.innerHTML = `${html}<p class="hint no-print" style="margin-top:16px"><a href="#" id="again">← 다시 입력하기</a></p><div id="save-msg" class="no-print" style="margin-top:12px"></div>`;
   document.getElementById("again").addEventListener("click", (e) => { e.preventDefault(); renderForm(); window.scrollTo(0, 0); });
   app.querySelector('[data-act="print"]')?.addEventListener("click", () => window.print());
   bindPdfButton(app, pdfName(chartA, chartB));
   window.scrollTo(0, 0);
+}
+
+function personRow(prefix, v, chart) {
+  const s = chart.solar;
+  const row = {};
+  row[`${prefix}_name`] = v.name;
+  row[`${prefix}_gender`] = v.gender;
+  row[`${prefix}_calendar`] = v.calendar;
+  row[`${prefix}_is_leap`] = v.leap;
+  row[`${prefix}_birth_date`] = `${v.y}-${pad(v.m)}-${pad(v.d)}`;
+  row[`${prefix}_solar_date`] = `${s.y}-${pad(s.m)}-${pad(s.d)}`;
+  row[`${prefix}_birth_time`] = v.timeUnknown ? null : v.time;
+  row[`${prefix}_region`] = v.region;
+  row[`${prefix}_yajasi`] = v.yajasi;
+  row[`${prefix}_pillars`] = pillarsText(chart);
+  row[`${prefix}_day_master`] = C.STEMS[chart.dm] + C.ELEMENTS[C.STEM_EL[chart.dm]];
+  return row;
+}
+
+async function save(va, vb, chartA, chartB) {
+  if (!sb) return;
+  const row = { ...personRow("a", va, chartA), ...personRow("b", vb, chartB) };
+  const { error } = await sb.from("gunghap_results").insert(row);
+  const box = document.getElementById("save-msg");
+  if (error && box) box.innerHTML = `<div class="err">궁합 기록을 저장하지 못했습니다. 관리자에게 알려 주세요. <span class="hint">${esc(error.message)}</span></div>`;
+  loadCount();
 }
 
 function onSubmit(e) {
@@ -148,9 +189,11 @@ function onSubmit(e) {
     const chartA = C.buildChart(toChartInput(va));
     const chartB = C.buildChart(toChartInput(vb));
     showResult(chartA, chartB);
+    save(va, vb, chartA, chartB);
   } catch (err) {
     renderForm(`계산 중 문제가 생겼습니다: ${err.message || err}`);
   }
 }
 
 renderForm();
+loadCount();
