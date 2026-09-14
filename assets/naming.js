@@ -1,10 +1,9 @@
 /* ── 한자 이름(성명학) ─────────────────────────────────────
    한자 이름을 넣으면 획수로 오행을 뽑아 사주와 함께 봅니다.
 
-   - 획수는 "원획"을 씁니다. 부수를 획이 줄기 전의 본래 글자로 보고 센
-     획수입니다. 예를 들어 삼수변(氵)은 쓸 때는 3획이지만 본래 글자인
-     水(물 수)로 보아 4획으로 셉니다. 이 계산을 하지 않으면(필획만 세면)
-     사격의 숫자 자체가 달라져 버립니다.
+   - 한자와 획수, 한글 음은 대법원 인명용 한자표(공식 자료)를 그대로 씁니다.
+     그래서 후보에서 고르든 직접 입력하든, 실제로 이름에 쓸 수 있는 한자만
+     다룹니다. 획수는 그 표가 성명학 계산용으로 내주는 값입니다.
    - 오행은 획수의 끝자리로 봅니다: 1·2획 목, 3·4획 화, 5·6획 토,
      7·8획 금, 9·0(10)획 수.
    - 사격(원격·형격·이격·정격)은 성 1자·이름 1~2자 이름을 기준으로 계산합니다.
@@ -14,16 +13,20 @@
      차이가 있어(특히 ㅁㅂㅍ, ㅇㅎ을 어디로 볼지), 참고용으로만 보여 줍니다.
 
    데이터 출처와 라이선스는 assets/hanja-data.js 주석 참고. */
-import { CHARS, READS, STROKES, KNOWN } from "./hanja-data.js";
+import { CHARS, READS, STROKES, ALT_READS } from "./hanja-data.js";
 import { ELEMENTS, ELEMENTS_HJ } from "./saju-core.js";
 
+// CHARS에는 기본다국어평면 밖의 한자(놀랍게도 456자)도 섞여 있어, 문자열 인덱스가 아니라
+// 유니코드 낱자 단위로 쪼개야 한다(그냥 CHARS[i]로 하면 그런 글자에서 서로게이트 쌍이
+// 반으로 잘려 어긋난다).
+const CHAR_ARR = [...CHARS];
 const IDX = new Map();
-for (let i = 0; i < CHARS.length; i++) IDX.set(CHARS[i], i);
+for (let i = 0; i < CHAR_ARR.length; i++) IDX.set(CHAR_ARR[i], i);
 
 export function hanjaInfo(ch) {
   const i = IDX.get(ch);
   if (i == null) return null;
-  return { char: ch, reading: READS[i], strokes: Number(STROKES.slice(i * 2, i * 2 + 2)), known: KNOWN[i] === "1" };
+  return { char: ch, reading: READS[i], strokes: Number(STROKES.slice(i * 2, i * 2 + 2)) };
 }
 
 export function elementOfStrokes(n) {
@@ -69,15 +72,10 @@ export function soundElement(syll) {
   return CHO_EL[Math.floor(code / 588)];
 }
 
-// 대표 음 말고 이름에 흔히 쓰는 다른 음
-const ALT_READ = { "金": "김", "車": "거", "宅": "댁", "復": "부", "更": "갱", "北": "배", "便": "편", "率": "률솔",
-  "樂": "락요", "說": "세열", "惡": "오", "參": "삼", "識": "지", "行": "항", "見": "현", "易": "이", "則": "즉",
-  "洞": "통", "切": "체", "拓": "탁", "茶": "차", "刺": "척", "度": "탁", "降": "항", "丹": "란", "否": "비" };
-
-// 한글로 적은 음과 한자 음이 맞는지(두음법칙과 다른 음까지 허용)
+// 한글로 적은 음과 한자 음이 맞는지(두음법칙과, 그 한자로 등록 가능한 다른 음까지 허용)
 function readingMatches(typed, ch, reading) {
   if (typed === reading || leadingSoundRule(reading) === typed) return true;
-  const alt = ALT_READ[ch] || "";
+  const alt = ALT_READS[ch] || "";
   return [...alt].some((r) => r === typed || leadingSoundRule(r) === typed);
 }
 
@@ -90,27 +88,18 @@ function buildReverse() {
     const arr = REVERSE.get(syll);
     if (!arr.includes(ch)) arr.push(ch);
   };
-  for (let i = 0; i < CHARS.length; i++) add(READS[i], CHARS[i]);
-  for (const [ch, alt] of Object.entries(ALT_READ)) for (const r of alt) add(r, ch);
-  // 획수가 적은 순으로 둔다. 획수가 같으면 사전에 뜻풀이가 있는(더 널리 쓰일 가능성이 큰) 글자를 앞에 둔다.
-  for (const arr of REVERSE.values()) {
-    arr.sort((a, b) => {
-      const ia = hanjaInfo(a), ib = hanjaInfo(b);
-      if (ia.strokes !== ib.strokes) return ia.strokes - ib.strokes;
-      return ia.known === ib.known ? 0 : ia.known ? -1 : 1;
-    });
-  }
+  for (let i = 0; i < CHAR_ARR.length; i++) add(READS[i], CHAR_ARR[i]);
+  for (const [ch, alt] of Object.entries(ALT_READS)) for (const r of alt) add(r, ch);
+  // 획수가 적은 순으로 둔다.
+  for (const arr of REVERSE.values()) arr.sort((a, b) => hanjaInfo(a).strokes - hanjaInfo(b).strokes);
   return REVERSE;
 }
 
 // 한글 음(예: "민")으로 후보 한자를 찾는다. 획수 적은 순으로 정렬해 돌려준다.
 // 두음법칙이 적용된 음(예: "이")으로 찾을 때는 본래 음(리 등)의 후보도 함께 더한다.
-// 부수 변형 글자(氵忄扌艹辶阝礻衤耂)는 낱자로는 실제 이름에 쓰이지 않으므로 후보에서 뺀다.
-const RADICAL_ONLY = new Set([..."氵忄扌艹辶阝礻衤耂"]);
-
 export function candidatesFor(syll) {
   const set = new Map();
-  const put = (ch) => { if (!RADICAL_ONLY.has(ch) && !set.has(ch)) set.set(ch, hanjaInfo(ch)); };
+  const put = (ch) => { if (!set.has(ch)) set.set(ch, hanjaInfo(ch)); };
   (buildReverse().get(syll) || []).forEach(put);
   const code = syll.charCodeAt(0) - 0xac00;
   if (code >= 0 && code <= 11171) {
@@ -123,7 +112,7 @@ export function candidatesFor(syll) {
       (buildReverse().get(String.fromCharCode(0xac00 + 5 * 588 + jung * 28 + jong)) || []).forEach(put);
     }
   }
-  return [...set.values()].sort((a, b) => a.strokes !== b.strokes ? a.strokes - b.strokes : (a.known === b.known ? 0 : a.known ? -1 : 1));
+  return [...set.values()].sort((a, b) => a.strokes - b.strokes);
 }
 
 const GEN = [1, 2, 3, 4, 0]; // 목생화 화생토 토생금 금생수 수생목
