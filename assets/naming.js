@@ -92,12 +92,12 @@ function buildReverse() {
   };
   for (let i = 0; i < CHARS.length; i++) add(READS[i], CHARS[i]);
   for (const [ch, alt] of Object.entries(ALT_READ)) for (const r of alt) add(r, ch);
-  // 사전에 뜻풀이가 있는(더 널리 쓰일 가능성이 큰) 글자를 앞에, 그 안에서는 획수가 적은 순으로 둔다.
+  // 획수가 적은 순으로 둔다. 획수가 같으면 사전에 뜻풀이가 있는(더 널리 쓰일 가능성이 큰) 글자를 앞에 둔다.
   for (const arr of REVERSE.values()) {
     arr.sort((a, b) => {
       const ia = hanjaInfo(a), ib = hanjaInfo(b);
-      if (ia.known !== ib.known) return ia.known ? -1 : 1;
-      return ia.strokes - ib.strokes;
+      if (ia.strokes !== ib.strokes) return ia.strokes - ib.strokes;
+      return ia.known === ib.known ? 0 : ia.known ? -1 : 1;
     });
   }
   return REVERSE;
@@ -123,7 +123,7 @@ export function candidatesFor(syll) {
       (buildReverse().get(String.fromCharCode(0xac00 + 5 * 588 + jung * 28 + jong)) || []).forEach(put);
     }
   }
-  return [...set.values()].sort((a, b) => (a.known !== b.known ? (a.known ? -1 : 1) : a.strokes - b.strokes));
+  return [...set.values()].sort((a, b) => a.strokes !== b.strokes ? a.strokes - b.strokes : (a.known === b.known ? 0 : a.known ? -1 : 1));
 }
 
 const GEN = [1, 2, 3, 4, 0]; // 목생화 화생토 토생금 금생수 수생목
