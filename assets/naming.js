@@ -97,9 +97,14 @@ function buildReverse() {
 
 // 한글 음(예: "민")으로 후보 한자를 찾는다. 획수 적은 순으로 정렬해 돌려준다.
 // 두음법칙이 적용된 음(예: "이")으로 찾을 때는 본래 음(리 등)의 후보도 함께 더한다.
+// 이 글자 하나만으로 유니코드 낱자를 이루는지(=기본다국어평면 밖 글자인지). 그런 글자는
+// 실제 이름에 쓰는 경우가 극히 드물고, 대부분의 글꼴에 그림 자체가 없어 빈 네모로 보이기
+// 쉬우므로 후보 목록에는 내놓지 않는다(직접 입력해서 넣는 것은 그대로 계산된다).
+const isRareBlock = (ch) => ch.codePointAt(0) > 0xffff;
+
 export function candidatesFor(syll) {
   const set = new Map();
-  const put = (ch) => { if (!set.has(ch)) set.set(ch, hanjaInfo(ch)); };
+  const put = (ch) => { if (!isRareBlock(ch) && !set.has(ch)) set.set(ch, hanjaInfo(ch)); };
   (buildReverse().get(syll) || []).forEach(put);
   const code = syll.charCodeAt(0) - 0xac00;
   if (code >= 0 && code <= 11171) {
