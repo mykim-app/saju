@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 import * as C from "./saju-core.js";
 import { bindPdfButton } from "./pdf.js";
-import { renderReading } from "./sonkeum-report.js";
+import { renderReading, handDiagramSection } from "./sonkeum-report.js";
 
 const app = document.getElementById("app");
 const configured = !SUPABASE_URL.includes("여기에") && !SUPABASE_ANON_KEY.includes("여기에");
@@ -170,6 +170,7 @@ function showLoading() {
 function showResult(name, text) {
   const html = `<article class="report" data-pdf-root>
     <header class="rhead" data-pdf-block><h1>${esc(name)}님의 손금풀이</h1></header>
+    ${handDiagramSection()}
     ${renderReading(text)}
     <section class="rsec outro" data-pdf-block>
       <p>손금은 재미로 보는 참고 자료입니다. 같은 손이라도 보는 사람과 유파에 따라 풀이가 다를 수 있고, 사진의 각도·조명에 따라서도 결과가 달라질 수 있습니다. 건강·중요한 결정의 근거로 쓰지 마세요.</p>

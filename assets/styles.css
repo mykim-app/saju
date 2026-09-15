@@ -319,3 +319,12 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
 .photo-preview img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
 .loading-box { text-align: center; padding: 60px 16px; color: var(--soft); }
 .loading-box p:first-child { font-size: 18px; color: var(--ink); font-family: var(--serif); margin-bottom: 8px; }
+
+/* 손금 기초 그림·범례 */
+.handmap-legend { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; }
+.handmap-legend li { display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; font-size: 14px; }
+.handmap-legend .dot {
+  flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; margin-top: 2px;
+}
+.handmap-legend b { font-family: var(--serif); margin-right: 2px; }

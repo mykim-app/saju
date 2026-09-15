@@ -4,7 +4,7 @@ import * as C from "./saju-core.js";
 import { renderReport } from "./saju-report.js";
 import { renderCompatReport } from "./gunghap-report.js";
 import { REL_TYPE_LABEL } from "./compat-data.js";
-import { renderReading } from "./sonkeum-report.js";
+import { renderReading, handDiagramSection } from "./sonkeum-report.js";
 import { bindPdfButton } from "./pdf.js";
 
 const app = document.getElementById("app");
@@ -255,6 +255,7 @@ function openRecord(r) {
         <header class="rhead" data-pdf-block><h1>${esc(r.name)}님의 손금풀이</h1>
           <p class="hint">${r.handedness === "right" ? "오른손잡이" : "왼손잡이"} · 손 사진 ${r.hand_count}장${r.birth_date ? ` · 태어난 날 ${esc(r.birth_date)}` : ""}</p>
         </header>
+        ${handDiagramSection()}
         ${renderReading(r.reading_text)}
       </article>`;
       filename = `손금풀이_${clean(r.name)}.pdf`;
