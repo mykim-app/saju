@@ -231,6 +231,7 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
 /* 한눈에 보기 */
 .summary dl.pairs { background: var(--paper-2); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin: 0; }
 .summary dl.pairs div { grid-template-columns: 6.5em 1fr; }
+.match-percent { font-family: var(--serif); font-weight: 700; font-size: 26px; color: var(--water); margin-right: 6px; }
 /* 십신 쉽게 보기 */
 .tglegend { margin-top: 14px; border: 1px dashed var(--line); border-radius: 8px; padding: 10px 14px; }
 .tgl-title { font-size: 13px; color: var(--soft); margin: 0 0 6px !important; }

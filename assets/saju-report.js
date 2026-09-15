@@ -60,12 +60,13 @@ function luckText(chart, ys, s, b, kind, full) {
   const gS = C.groupOf(sTG), gB = C.groupOf(bTG);
   const sc = luckScore(chart, ys, s, b);
   const L = T.LUCK_TEXT[sTG];
+  const warn = sc.cls === "warn";
   const out = [];
-  if (kind === "big") out.push(L.big);
-  else if (kind === "year") out.push(full ? L.year : firstPart(L.year));
-  else if (kind === "month") out.push(L.day.replaceAll("날입니다", "달입니다"));
-  else out.push(L.day);
-  if (gB !== gS && kind !== "day") out.push("또 " + BRANCH_LIFE[gB]);
+  if (kind === "big") out.push(warn ? (L.bigWarn || L.big) : L.big);
+  else if (kind === "year") out.push(full ? (warn ? (L.yearWarn || L.year) : L.year) : firstPart(warn ? (L.yearWarn || L.year) : L.year));
+  else if (kind === "month") out.push((warn ? (L.dayWarn || L.day) : L.day).replaceAll("날입니다", "달입니다"));
+  else out.push(warn ? (L.dayWarn || L.day) : L.day);
+  if (gB !== gS && kind !== "day" && !warn) out.push("또 " + BRANCH_LIFE[gB]);
 
   const tone = TONE[sTG];
   const useGroup = C.groupOf(C.tenGodOfStem(dm, [0, 2, 4, 6, 8][ys.useEl]));
@@ -80,12 +81,7 @@ function luckText(chart, ys, s, b, kind, full) {
       : `이 사주에 필요한 기운이 들어오는 ${unit}라 계획한 일을 밀고 나가도 좋습니다.`;
     else v = kind === "month" || kind === "day" ? "바쁘더라도 이 사주에는 힘이 되는 흐름입니다."
       : "겉으로는 부담스러워 보여도 이 사주에는 필요한 기운이라, 잘 버티면 오히려 힘이 됩니다.";
-  } else if (sc.cls === "warn") {
-    if (tone > 0) v = kind === "month" || kind === "day" ? "다만 부담이 되는 기운이 섞여 있어 지출과 약속은 줄이세요."
-      : "다만 이 사주에는 부담이 되는 기운이 함께 들어오니, 좋은 일일수록 욕심을 줄이세요.";
-    else v = kind === "month" || kind === "day" ? "무리하지 말고 조심스럽게 움직이세요."
-      : "이 사주에는 부담이 되는 기운이라, 새 일을 벌이기보다 지키는 쪽으로 움직이세요.";
-  } else if (!sc.dayChung && (kind === "big" || kind === "year")) {
+  } else if (sc.cls === "mid" && !sc.dayChung && (kind === "big" || kind === "year")) {
     v = "좋고 나쁨이 크게 치우치지 않으니 하던 일을 꾸준히 이어 가세요.";
   }
   if (v) out.push(v);

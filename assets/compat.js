@@ -90,8 +90,12 @@ export function analyzeCompat(a, b, opts = {}) {
 
   const tier = score >= 5 ? "good" : score >= 0 ? "mid" : "warn";
   const label = { good: "좋음", mid: "보통", warn: "조심" }[tier];
+  // 화면에 보여 주는 '전반적 일치도' — 위 점수를 보기 좋은 퍼센트로 옮긴 것일 뿐,
+  // 정교하게 측정한 확률이 아니라 참고용 숫자다. 5~95 사이로 막아 0%·100%라는
+  // 지나치게 딱 떨어지는 값은 나오지 않게 한다.
+  const percent = Math.max(5, Math.min(95, Math.round(50 + score * 3)));
 
-  return { year, dayBranch, dayStem, nayin, tgBonA, tgAonB, ysA, ysB, helpForA, hurtForA, helpForB, hurtForB, tier, label, sok };
+  return { year, dayBranch, dayStem, nayin, tgBonA, tgAonB, ysA, ysB, helpForA, hurtForA, helpForB, hurtForB, tier, label, sok, percent };
 }
 
 // 만 나이(생일이 지났는지까지 반영)

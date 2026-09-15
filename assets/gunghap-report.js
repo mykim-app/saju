@@ -45,6 +45,7 @@ export function renderCompatReport(nameA, chartA, nameB, chartB, opts = {}) {
   <section class="rsec summary" data-pdf-block>
     <h2>한눈에 보기</h2>
     <dl class="pairs">
+      <div><dt>전반적 일치도</dt><dd><span class="match-percent">${r.percent}%</span> <span class="hint">두 사람의 궁합 요소를 종합해 매긴 참고용 수치입니다.</span></dd></div>
       <div><dt>종합</dt><dd><span class="tag ${r.tier}">${r.label}</span> ${reasons.length ? reasons.join(", ") + "인 점이 크게 작용했습니다." : "두드러지게 좋거나 조심할 관계는 없는, 무난한 짜임입니다."}</dd></div>
       ${sok ? `<div><dt>일지 관계</dt><dd>${gzText(chartA.pillars.day.s, chartA.pillars.day.b)} · ${gzText(chartB.pillars.day.s, chartB.pillars.day.b)} — <b>${r.dayBranch.type}</b></dd></div>` : ""}
       <div><dt>띠 관계</dt><dd>${C.ANIMALS[chartA.pillars.year.b]}띠 · ${C.ANIMALS[chartB.pillars.year.b]}띠 — <b>${r.year.type}</b></dd></div>
