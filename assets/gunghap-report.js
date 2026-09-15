@@ -1,6 +1,7 @@
 import * as C from "./saju-core.js";
 import * as G from "./compat-data.js";
 import { analyzeCompat, sokAllowed } from "./compat.js";
+import { glossarySection } from "./glossary-data.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const elName = (e) => `${C.ELEMENTS[e]}(${C.ELEMENTS_HJ[e]})`;
@@ -80,6 +81,12 @@ export function renderCompatReport(nameA, chartA, nameB, chartB, opts = {}) {
     <p>${esc(nameB)}님에게 필요한 기운(${elName(r.ysB.useEl)}·${elName(r.ysB.helpEl)})이 ${esc(nameA)}님의 사주에 ${r.helpForB ? `${r.helpForB}개 있어 도움이 됩니다.` : "뚜렷하게 있지는 않습니다."}${r.hurtForB ? ` 다만 ${esc(nameB)}님이 조심할 ${elName(r.ysB.avoidEl)} 기운도 ${r.hurtForB}개 있습니다.` : ""}</p>
     <p class="hint">각자의 사주에서 부족하거나 필요한 기운(용신·희신)을 상대가 지니고 있으면, 서로 기대고 채워 주는 관계로 봅니다.</p>`);
 
+  const glossary = glossarySection([
+    "일간", "일주", "합", "육합", "삼합", "방합", "충", "형", "파", "해", "귀문", "원진",
+    "간합", "상생", "상극", "비화", "십성", "용신", "희신", "기신", "납음",
+    ...(relType === "romantic" ? ["속궁합"] : []),
+  ]);
+
   const outro = `
     <section class="rsec outro" data-pdf-block>
       <p>궁합을 보는 방법은 무엇을 더 크게 볼지에 따라 유파와 문헌마다 차이가 큽니다. 여기서는 널리 쓰이는 몇 가지 방법을 소개하는 수준으로 다뤘습니다. 재미로 참고하시고, 실제 관계는 두 사람이 함께 만들어 가는 것임을 잊지 마세요.</p>
@@ -100,6 +107,7 @@ export function renderCompatReport(nameA, chartA, nameB, chartB, opts = {}) {
     ${sokSec}
     ${tgSec}
     ${flowSec}
+    ${glossary}
     ${outro}
   </article>`;
 }

@@ -236,6 +236,9 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
 .tgl-title { font-size: 13px; color: var(--soft); margin: 0 0 6px !important; }
 .tglegend ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px 12px; font-size: 13.5px; }
 .tglegend b { font-family: var(--serif); margin-right: 4px; }
+.tglegend ul.glossary-list { display: block; }
+.tglegend ul.glossary-list li { margin: 0 0 8px; line-height: 1.5; }
+.tglegend ul.glossary-list li:last-child { margin-bottom: 0; }
 .sub-h { font-weight: 700; margin-top: 18px !important; }
 .outro .actions { margin-top: 16px; }
 @media (max-width: 560px) {
