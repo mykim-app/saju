@@ -141,10 +141,10 @@ export function analyzeName(hangulName, hanjaChars) {
   const mod81 = (n) => ((n - 1) % 81) + 1;
   const sagyeok = given.length
     ? {
-        won: { label: "원격(元格)", period: "초년운", n: mod81(sum(given)) },
-        hyeong: { label: "형격(亨格)", period: "청년·장년운", n: mod81(sum(surname) + given[0].strokes) },
-        i: { label: "이격(利格)", period: "중년운", n: mod81(sum(surname) + given[given.length - 1].strokes) },
-        jeong: { label: "정격(貞格)", period: "노년·총운", n: mod81(sum(surname) + sum(given)) },
+        won: { label: "원격", desc: "이름 글자만 더한 값", period: "초년운", n: mod81(sum(given)) },
+        hyeong: { label: "형격", desc: "성+이름 첫 글자를 더한 값", period: "청년·장년운", n: mod81(sum(surname) + given[0].strokes) },
+        i: { label: "이격", desc: "성+이름 끝 글자를 더한 값", period: "중년운", n: mod81(sum(surname) + given[given.length - 1].strokes) },
+        jeong: { label: "정격", desc: "성+이름 전체를 더한 값", period: "노년·총운", n: mod81(sum(surname) + sum(given)) },
       }
     : null;
 

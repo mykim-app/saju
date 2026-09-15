@@ -1,7 +1,6 @@
 import * as C from "./saju-core.js";
 import * as T from "./saju-data.js";
 import { analyzeName, elementOfStrokes } from "./naming.js";
-import { glossarySection } from "./glossary-data.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const pad = (n) => String(n).padStart(2, "0");
@@ -273,7 +272,7 @@ export function renderReport(chart, opts = {}) {
         const good = list.filter((g) => g.el === ys.useEl || g.el === ys.helpEl).map((g) => g.period.split("·")[0].replace("운", ""));
         const bad = list.filter((g) => g.el === ys.avoidEl).map((g) => g.period.split("·")[0].replace("운", ""));
         sgRow = `
-        <dl class="pairs">${list.map((g) => `<div><dt>${g.label}</dt><dd>${g.n} → <b class="el-${g.el}">${elName(g.el)}</b> · ${g.period}</dd></div>`).join("")}</dl>
+        <dl class="pairs">${list.map((g) => `<div><dt>${g.label}</dt><dd>${g.n} → <b class="el-${g.el}">${elName(g.el)}</b> · ${g.period} <span class="hint">— ${g.desc}</span></dd></div>`).join("")}</dl>
         <p>${good.length ? `이 사주에 도움이 되는 기운이 드는 시기는 <b>${good.join("·")}</b>입니다.` : "사격 가운데 이 사주의 용신·희신 기운이 드는 시기는 없습니다."}${bad.length ? ` 조심할 ${elName(ys.avoidEl)} 기운이 드는 시기는 ${bad.join("·")}입니다.` : ""}</p>`;
       }
       let soundTxt = "";
@@ -486,15 +485,6 @@ export function renderReport(chart, opts = {}) {
     </dl>
   </section>`;
 
-  const glossary = glossarySection([
-    "천간", "지지", "일간", "일주", "지장간", "용신", "희신", "기신",
-    "12운성", "장생", "목욕", "관대", "건록", "제왕", "쇠", "병", "사", "묘", "절", "태", "양",
-    "천을귀인", "문창귀인", "양인살", "홍염살", "도화살", "화개살", "역마살", "괴강살", "백호살", "공망",
-    "귀문", "원진", "합", "육합", "삼합", "방합", "충", "형", "파", "해",
-    "대운", "세운", "월운", "순행", "역행", "납음",
-    ...(nameSection ? ["원획", "사격", "원격", "형격", "이격", "정격", "두음법칙"] : []),
-  ]);
-
   const outro = `
     <section class="rsec outro" data-pdf-block>
       <p>사주는 타고난 기운의 짜임을 읽는 전통적인 방법입니다. 풀이는 스스로를 돌아보는 참고로만 쓰시고, 건강·돈·진로 같은 중요한 결정은 전문가와 상의하세요.</p>
@@ -525,7 +515,6 @@ export function renderReport(chart, opts = {}) {
     ${section("앞으로 10년의 흐름(세운)", seun)}
     ${section(`${sajuYear}년 월별 흐름(월운)`, wolun)}
     ${section("오늘의 운세", iljin)}
-    ${glossary}
     ${outro}
   </article>`;
 }
