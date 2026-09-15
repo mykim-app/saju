@@ -84,7 +84,15 @@ async function callGemini(apiKey: string, model: string, prompt: string, images:
   const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ contents: [{ parts }], generationConfig: { maxOutputTokens: 1500 } }),
+    body: JSON.stringify({
+      contents: [{ parts }],
+      // maxOutputTokens를 넉넉히 잡는다. 요즘 Gemini는 답을 쓰기 전에 속으로
+      // '생각'하는 토큰을 먼저 쓰는데, 그 생각 토큰도 이 한도 안에서 쓰이기
+      // 때문에 한도가 낮으면 정작 눈에 보이는 답이 한두 줄 만에 끊긴다.
+      // thinkingBudget을 0으로 둬서 그 생각 과정 자체를 최대한 줄인다(이
+      // 옵션을 모르는 모델은 그냥 무시하므로 안전하다).
+      generationConfig: { maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 } },
+    }),
   });
   if (!res.ok) {
     const errBody = await res.text();
@@ -97,7 +105,13 @@ async function callGemini(apiKey: string, model: string, prompt: string, images:
   if (cand?.finishReason === "SAFETY" || cand?.finishReason === "PROHIBITED_CONTENT") {
     return { error: "이 사진은 분석할 수 없습니다. 손바닥이 잘 보이는 다른 사진으로 시도해 주세요." };
   }
-  const text = (cand?.content?.parts || []).map((p: { text?: string }) => p.text || "").join("").trim();
+  // '생각' 중간 요약(thought: true)은 실제 답이 아니므로 빼고, 진짜 답 부분만 이어 붙인다.
+  const text = (cand?.content?.parts || []).filter((p: { thought?: boolean }) => !p.thought)
+    .map((p: { text?: string }) => p.text || "").join("").trim();
+  if (cand?.finishReason === "MAX_TOKENS" && text.split("\n").length < 3) {
+    console.error("gemini truncated", JSON.stringify(data).slice(0, 500));
+    return { error: "AI가 답을 다 쓰기 전에 멈췄습니다(생각 단계에서 글자 수를 다 썼습니다). 다시 한 번 시도해 주세요." };
+  }
   return { text };
 }
 
