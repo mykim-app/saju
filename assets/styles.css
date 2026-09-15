@@ -313,3 +313,9 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
 }
 [hidden] { display: none !important; }
 .seg { justify-self: start; }
+
+/* 손금 사진 올리기 */
+.photo-preview { margin-top: 8px; display: flex; align-items: center; gap: 10px; }
+.photo-preview img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+.loading-box { text-align: center; padding: 60px 16px; color: var(--soft); }
+.loading-box p:first-child { font-size: 18px; color: var(--ink); font-family: var(--serif); margin-bottom: 8px; }

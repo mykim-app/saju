@@ -157,6 +157,51 @@ $$;
 revoke all on function public.gunghap_today_count() from public;
 grant execute on function public.gunghap_today_count() to anon, authenticated;
 
+-- 7) 손금 기록 표 — 사진은 절대 담지 않는다. AI가 사진을 보고 낸 풀이 '글'만 저장한다.
+create table if not exists public.sonkeum_results (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  name text not null check (char_length(name) between 1 and 20),
+  handedness text not null check (handedness in ('right', 'left')),
+  hand_count smallint not null check (hand_count in (1, 2)),
+  birth_date text check (birth_date is null or birth_date ~ '^\d{4}-\d{2}-\d{2}$'),
+  saju_note text check (saju_note is null or char_length(saju_note) <= 200),
+  reading_text text not null check (char_length(reading_text) <= 8000)
+);
+create index if not exists sonkeum_results_created_at_idx on public.sonkeum_results (created_at desc);
+
+alter table public.sonkeum_results enable row level security;
+revoke all on public.sonkeum_results from anon, authenticated;
+grant insert on public.sonkeum_results to anon, authenticated;
+grant select, delete on public.sonkeum_results to authenticated;
+
+drop policy if exists "누구나 등록" on public.sonkeum_results;
+create policy "누구나 등록"
+  on public.sonkeum_results for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "관리자 조회" on public.sonkeum_results;
+create policy "관리자 조회"
+  on public.sonkeum_results for select
+  to authenticated
+  using (public.is_admin());
+
+drop policy if exists "관리자 삭제" on public.sonkeum_results;
+create policy "관리자 삭제"
+  on public.sonkeum_results for delete
+  to authenticated
+  using (public.is_admin());
+
+-- 8) 오늘(한국 시간) 손금 등록 인원 — sonkeum-read 함수가 하루 이용 한도를 확인할 때도 이 함수를 씁니다.
+create or replace function public.sonkeum_today_count() returns integer
+language sql stable security definer set search_path = public as $$
+  select count(*)::int from public.sonkeum_results
+  where created_at >= (date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul');
+$$;
+revoke all on function public.sonkeum_today_count() from public;
+grant execute on function public.sonkeum_today_count() to anon, authenticated;
+
 -- ─────────────────────────────────────────────────────────────
 -- 관리자 주소는 MBTI 사이트 때 이미 등록했다면 다시 넣을 필요가 없습니다.
 -- 확인:  select email from public.admins;

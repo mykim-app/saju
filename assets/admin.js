@@ -4,6 +4,7 @@ import * as C from "./saju-core.js";
 import { renderReport } from "./saju-report.js";
 import { renderCompatReport } from "./gunghap-report.js";
 import { REL_TYPE_LABEL } from "./compat-data.js";
+import { renderReading } from "./sonkeum-report.js";
 import { bindPdfButton } from "./pdf.js";
 
 const app = document.getElementById("app");
@@ -124,6 +125,7 @@ function headHtml(title) {
   <nav class="modetabs no-print">
     <button type="button" class="tab ${kind === "saju" ? "active" : ""}" data-kind="saju">사주 기록</button>
     <button type="button" class="tab ${kind === "gunghap" ? "active" : ""}" data-kind="gunghap">궁합 기록</button>
+    <button type="button" class="tab ${kind === "sonkeum" ? "active" : ""}" data-kind="sonkeum">손금 기록</button>
   </nav>`;
 }
 
@@ -138,17 +140,18 @@ function bindTabs() {
 
 async function renderList(msg) {
   if (!loggedIn) return renderRequest();
-  const title = kind === "saju" ? "사주 기록" : "궁합 기록";
+  const title = { saju: "사주 기록", gunghap: "궁합 기록", sonkeum: "손금 기록" }[kind];
   app.innerHTML = `${headHtml(title)}<p>불러오는 중입니다.</p>`;
   bindTabs();
 
-  const table = kind === "saju" ? "saju_results" : "gunghap_results";
-  const countFn = kind === "saju" ? "saju_today_count" : "gunghap_today_count";
+  const table = { saju: "saju_results", gunghap: "gunghap_results", sonkeum: "sonkeum_results" }[kind];
+  const countFn = { saju: "saju_today_count", gunghap: "gunghap_today_count", sonkeum: "sonkeum_today_count" }[kind];
   const from = (page - 1) * PER_PAGE;
   let q = sb.from(table).select("*", { count: "exact" }).order("created_at", { ascending: false }).range(from, from + PER_PAGE - 1);
   if (query) {
     const qq = query.replace(/[%_]/g, "");
-    q = kind === "saju" ? q.ilike("name", `%${qq}%`) : q.or(`a_name.ilike.%${qq}%,b_name.ilike.%${qq}%`);
+    if (kind === "saju" || kind === "sonkeum") q = q.ilike("name", `%${qq}%`);
+    else q = q.or(`a_name.ilike.%${qq}%,b_name.ilike.%${qq}%`);
   }
   const [{ data: rows, count, error }, { data: today }] = await Promise.all([q, sb.rpc(countFn)]);
   if (!loggedIn) return;
@@ -158,7 +161,8 @@ async function renderList(msg) {
   }
   const pages = Math.max(1, Math.ceil((count || 0) / PER_PAGE));
   const fmt = (t) => new Date(t).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
-  const cards = rows.map((r) => kind === "saju" ? `
+  const cardOf = {
+    saju: (r) => `
     <li class="card">
       <button class="open" data-id="${r.id}" type="button">
         <span class="nm">${esc(r.name)}</span>
@@ -167,7 +171,8 @@ async function renderList(msg) {
         <span class="meta">${esc(REGION_NAME[r.region] || r.region)} · 등록 ${fmt(r.created_at)}</span>
       </button>
       <button class="btn-ghost btn-danger del" data-del="${r.id}" data-name="${esc(r.name)}" type="button">지우기</button>
-    </li>` : `
+    </li>`,
+    gunghap: (r) => `
     <li class="card">
       <button class="open" data-id="${r.id}" type="button">
         <span class="nm">${esc(r.a_name)} · ${esc(r.b_name)} <span class="hint">(${esc(REL_TYPE_LABEL[r.rel_type] || REL_TYPE_LABEL.romantic)})</span></span>
@@ -176,7 +181,20 @@ async function renderList(msg) {
         <span class="meta">등록 ${fmt(r.created_at)}</span>
       </button>
       <button class="btn-ghost btn-danger del" data-del="${r.id}" data-name="${esc(r.a_name)}·${esc(r.b_name)}" type="button">지우기</button>
-    </li>`).join("");
+    </li>`,
+    sonkeum: (r) => `
+    <li class="card">
+      <button class="open" data-id="${r.id}" type="button">
+        <span class="nm">${esc(r.name)} <span class="hint">(${r.handedness === "right" ? "오른손잡이" : "왼손잡이"} · 손 ${r.hand_count}장)</span></span>
+        <span class="pz">${esc((r.reading_text || "").replace(/##+\s*/g, "").replace(/\s+/g, " ").slice(0, 50))}…</span>
+        <span class="meta">${r.birth_date ? `태어난 날 ${esc(r.birth_date)}` : "태어난 날 안 넣음"}</span>
+        <span class="meta">등록 ${fmt(r.created_at)}</span>
+      </button>
+      <button class="btn-ghost btn-danger del" data-del="${r.id}" data-name="${esc(r.name)}" type="button">지우기</button>
+    </li>`,
+  }[kind];
+  const cards = rows.map(cardOf).join("");
+
 
   app.innerHTML = `
     ${headHtml(title)}
@@ -222,7 +240,7 @@ function openRecord(r) {
         hour: hh, minute: mm, timeUnknown: !r.birth_time, region: r.region, yajasi: r.yajasi });
       html = renderReport(chart, { hidePrint: false });
       filename = `사주풀이_${clean(r.name)}_${r.birth_date.replaceAll("-", "")}.pdf`;
-    } else {
+    } else if (kind === "gunghap") {
       const mk = (p) => {
         const [y, m, d] = r[`${p}_birth_date`].split("-").map(Number);
         const [hh, mm] = r[`${p}_birth_time`] ? r[`${p}_birth_time`].split(":").map(Number) : [12, 0];
@@ -232,6 +250,14 @@ function openRecord(r) {
       const chartA = mk("a"), chartB = mk("b");
       html = renderCompatReport(r.a_name, chartA, r.b_name, chartB, { hidePrint: false, relType: r.rel_type || "romantic" });
       filename = `궁합풀이_${clean(r.a_name)}_${clean(r.b_name)}.pdf`;
+    } else {
+      html = `<article class="report" data-pdf-root>
+        <header class="rhead" data-pdf-block><h1>${esc(r.name)}님의 손금풀이</h1>
+          <p class="hint">${r.handedness === "right" ? "오른손잡이" : "왼손잡이"} · 손 사진 ${r.hand_count}장${r.birth_date ? ` · 태어난 날 ${esc(r.birth_date)}` : ""}</p>
+        </header>
+        ${renderReading(r.reading_text)}
+      </article>`;
+      filename = `손금풀이_${clean(r.name)}.pdf`;
     }
   } catch (err) {
     html = `<div class="err">풀이를 다시 만들지 못했습니다. ${esc(err.message)}</div>`;

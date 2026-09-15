@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>사주풀이</title>
-<meta name="description" content="이름과 태어난 날·시각으로 사주 여덟 글자를 세우고 풀어 봅니다.">
+<title>손금풀이</title>
+<meta name="description" content="손바닥 사진으로 손금을 풀어 봅니다.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Serif+KR:wght@400;700&display=swap">
@@ -15,28 +15,23 @@
   <main class="wrap">
     <header class="hero">
       <div>
-        <h1>사주풀이</h1>
-        <p>태어난 해·달·날·시를 여덟 글자로 세우고, 타고난 성향과 앞으로의 흐름을 풀어 드립니다.</p>
-      </div>
-      <div>
-        <div class="today" id="today" aria-label="오늘의 간지"></div>
-        <p class="today-cap" id="today-cap"></p>
+        <h1>손금풀이</h1>
+        <p>손바닥 사진을 올리면 AI가 손금을 보고 풀어 드립니다. 사진은 풀이에만 쓰고 따로 저장하지 않습니다.</p>
       </div>
     </header>
 
     <nav class="modetabs">
-      <a class="tab active" href="./index.html">사주풀이</a>
+      <a class="tab" href="./index.html">사주풀이</a>
       <a class="tab" href="./gunghap.html">궁합</a>
-      <a class="tab" href="./sonkeum.html">손금</a>
+      <a class="tab active" href="./sonkeum.html">손금</a>
     </nav>
 
     <div id="app"></div>
 
-    <footer class="foot" id="foot">오늘 사주를 본 사람 <b id="count">-</b>명</footer>
+    <footer class="foot" id="foot">오늘 손금을 본 사람 <b id="count">-</b>명</footer>
   </main>
-  <a class="admin-dot" href="./admin.html" aria-label="관리자 화면" title=""></a>
 
   <script src="./assets/vendor/lunar.js"></script>
-  <script type="module" src="./assets/app.js"></script>
+  <script type="module" src="./assets/sonkeum.js"></script>
 </body>
 </html>
