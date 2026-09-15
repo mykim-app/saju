@@ -52,7 +52,7 @@ function photoField(key, label, required) {
   return `
   <div class="field">
     <label class="label" for="ph_${key}">${label}${required ? "" : " (선택)"}</label>
-    <input class="input" type="file" accept="image/*" capture="environment" id="ph_${key}" data-photo="${key}">
+    <input class="input" type="file" accept="image/*" id="ph_${key}" data-photo="${key}">
     <div class="photo-preview" id="prev_${key}" ${has ? "" : "hidden"}><img alt="미리보기" src="${has || ""}"><button type="button" class="btn-ghost" data-clear="${key}">지우기</button></div>
   </div>`;
 }

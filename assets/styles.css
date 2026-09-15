@@ -282,7 +282,7 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
 .pcard-ilju { font-family: var(--serif); font-size: 20px; margin: 6px 0 0; }
 .pcard-ilju .hint { font-family: var(--sans); font-size: 12px; margin-left: 4px; }
 
-/* 사주풀이·궁합 탭 */
+/* 사주풀이·궁합 탭(관리자 화면 — 사주 기록/궁합 기록/손금 기록용, 차분한 밑줄 스타일) */
 .modetabs { display: flex; gap: 4px; margin: 18px 0 22px; border-bottom: 1px solid var(--line); }
 .modetabs .tab {
   padding: 10px 4px; font-weight: 700; color: var(--soft); text-decoration: none;
@@ -292,6 +292,16 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
 .modetabs .tab + .tab { margin-left: 16px; }
 .modetabs .tab.active { color: var(--ink); border-bottom-color: var(--water); }
 .modetabs .tab:hover { color: var(--ink); }
+
+/* 첫 화면 위쪽 사주팔자·궁합·손금 고르기(공개 화면용, 눈에 띄는 버튼형) */
+.sitetabs { display: flex; gap: 8px; margin: 20px 0 24px; }
+.sitetabs .tab {
+  flex: 1 1 0; text-align: center; padding: 13px 6px; font-weight: 700; font-size: 15px;
+  font-family: var(--serif); color: var(--ink); text-decoration: none;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--paper-2);
+}
+.sitetabs .tab.active { background: var(--ink); color: var(--paper-2); border-color: var(--ink); }
+.sitetabs .tab:not(.active):hover { border-color: var(--water); color: var(--water); }
 /* PDF로 뜰 때(pdf.js가 복제 화면에만 붙임) */
 .pdf-mode body { background: #fff; }
 .pdf-mode .no-print, .pdf-mode .admin-dot, .pdf-mode .hero, .pdf-mode .foot, .pdf-mode form.entry, .pdf-mode .admin-head { display: none !important; }
@@ -320,11 +330,10 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
 .loading-box { text-align: center; padding: 60px 16px; color: var(--soft); }
 .loading-box p:first-child { font-size: 18px; color: var(--ink); font-family: var(--serif); margin-bottom: 8px; }
 
-/* 손금 기초 그림·범례 */
-.handmap-legend { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; }
-.handmap-legend li { display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; font-size: 14px; }
-.handmap-legend .dot {
-  flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center; margin-top: 2px;
-}
-.handmap-legend b { font-family: var(--serif); margin-right: 2px; }
+/* 손금 기초 그림·범례(카드형: 줄 하나마다 확대 그림+이름+설명) */
+.handcard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.handcard { background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+.handcard svg { width: 100%; display: block; border-radius: 6px; }
+.handcard-name { font-family: var(--serif); font-weight: 800; margin: 6px 0 2px; text-align: center; }
+.handcard .hint { margin: 0; }
+@media (min-width: 640px) { .handcard-grid { grid-template-columns: repeat(4, 1fr); } }

@@ -118,7 +118,7 @@ function headHtml(title) {
   return `<div class="admin-head">
     <h1>${title}</h1>
     <div class="row" style="flex:0 0 auto">
-      <a class="btn-ghost" href="./" style="text-decoration:none">사주풀이</a>
+      <a class="btn-ghost" href="./" style="text-decoration:none">사주팔자</a>
       <button class="btn-ghost" id="out">로그아웃</button>
     </div>
   </div>
