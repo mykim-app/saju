@@ -202,6 +202,53 @@ $$;
 revoke all on function public.sonkeum_today_count() from public;
 grant execute on function public.sonkeum_today_count() to anon, authenticated;
 
+-- 9) 자미두수 기록 표
+create table if not exists public.jami_results (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  name text not null check (char_length(name) between 1 and 20),
+  gender text not null check (gender in ('M', 'F')),
+  calendar text not null check (calendar in ('solar', 'lunar')),
+  is_leap boolean not null default false,
+  birth_date text not null check (birth_date ~ '^\d{4}-\d{2}-\d{2}$'),
+  birth_time text not null check (birth_time ~ '^\d{2}:\d{2}$'),
+  five_elements_class text,
+  soul_palace text
+);
+create index if not exists jami_results_created_at_idx on public.jami_results (created_at desc);
+
+alter table public.jami_results enable row level security;
+revoke all on public.jami_results from anon, authenticated;
+grant insert on public.jami_results to anon, authenticated;
+grant select, delete on public.jami_results to authenticated;
+
+drop policy if exists "누구나 등록" on public.jami_results;
+create policy "누구나 등록"
+  on public.jami_results for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "관리자 조회" on public.jami_results;
+create policy "관리자 조회"
+  on public.jami_results for select
+  to authenticated
+  using (public.is_admin());
+
+drop policy if exists "관리자 삭제" on public.jami_results;
+create policy "관리자 삭제"
+  on public.jami_results for delete
+  to authenticated
+  using (public.is_admin());
+
+-- 10) 오늘(한국 시간) 자미두수 등록 인원
+create or replace function public.jami_today_count() returns integer
+language sql stable security definer set search_path = public as $$
+  select count(*)::int from public.jami_results
+  where created_at >= (date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul');
+$$;
+revoke all on function public.jami_today_count() from public;
+grant execute on function public.jami_today_count() to anon, authenticated;
+
 -- ─────────────────────────────────────────────────────────────
 -- 관리자 주소는 MBTI 사이트 때 이미 등록했다면 다시 넣을 필요가 없습니다.
 -- 확인:  select email from public.admins;

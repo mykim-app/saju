@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>손금풀이</title>
-<meta name="description" content="손바닥 사진으로 손금을 풀어 봅니다.">
+<title>자미두수</title>
+<meta name="description" content="생년월일시로 자미두수 명반을 봅니다.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Serif+KR:wght@400;700&display=swap">
@@ -15,24 +15,25 @@
   <main class="wrap">
     <header class="hero">
       <div>
-        <h1>손금풀이</h1>
-        <p>손바닥 사진을 올리면 AI가 손금을 보고 풀어 드립니다. 사진은 풀이에만 쓰고 따로 저장하지 않습니다.</p>
+        <h1>자미두수</h1>
+        <p>생년월일시로 명궁을 비롯한 12궁의 별자리(명반)를 봅니다.</p>
       </div>
     </header>
 
     <nav class="sitetabs">
       <a class="tab" href="./index.html">사주팔자</a>
       <a class="tab" href="./gunghap.html">궁합</a>
-      <a class="tab active" href="./sonkeum.html">손금</a>
-      <a class="tab" href="./jami.html">자미두수</a>
+      <a class="tab" href="./sonkeum.html">손금</a>
+      <a class="tab active" href="./jami.html">자미두수</a>
     </nav>
 
     <div id="app"></div>
 
-    <footer class="foot" id="foot">오늘 손금을 본 사람 <b id="count">-</b>명</footer>
+    <footer class="foot" id="foot">오늘 명반을 본 사람 <b id="count">-</b>명</footer>
   </main>
 
   <script src="./assets/vendor/lunar.js"></script>
-  <script type="module" src="./assets/sonkeum.js"></script>
+  <script src="./assets/vendor/iztro.min.js"></script>
+  <script type="module" src="./assets/jami.js"></script>
 </body>
 </html>

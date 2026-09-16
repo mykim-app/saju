@@ -5,6 +5,8 @@ import { renderReport } from "./saju-report.js";
 import { renderCompatReport } from "./gunghap-report.js";
 import { REL_TYPE_LABEL } from "./compat-data.js";
 import { renderReading, handDiagramSection } from "./sonkeum-report.js";
+import { buildChart as buildJamiChart } from "./jami-core.js";
+import { renderJamiReport } from "./jami-report.js";
 import { bindPdfButton } from "./pdf.js";
 
 const app = document.getElementById("app");
@@ -126,6 +128,7 @@ function headHtml(title) {
     <button type="button" class="tab ${kind === "saju" ? "active" : ""}" data-kind="saju">사주 기록</button>
     <button type="button" class="tab ${kind === "gunghap" ? "active" : ""}" data-kind="gunghap">궁합 기록</button>
     <button type="button" class="tab ${kind === "sonkeum" ? "active" : ""}" data-kind="sonkeum">손금 기록</button>
+    <button type="button" class="tab ${kind === "jami" ? "active" : ""}" data-kind="jami">자미두수 기록</button>
   </nav>`;
 }
 
@@ -140,17 +143,17 @@ function bindTabs() {
 
 async function renderList(msg) {
   if (!loggedIn) return renderRequest();
-  const title = { saju: "사주 기록", gunghap: "궁합 기록", sonkeum: "손금 기록" }[kind];
+  const title = { saju: "사주 기록", gunghap: "궁합 기록", sonkeum: "손금 기록", jami: "자미두수 기록" }[kind];
   app.innerHTML = `${headHtml(title)}<p>불러오는 중입니다.</p>`;
   bindTabs();
 
-  const table = { saju: "saju_results", gunghap: "gunghap_results", sonkeum: "sonkeum_results" }[kind];
-  const countFn = { saju: "saju_today_count", gunghap: "gunghap_today_count", sonkeum: "sonkeum_today_count" }[kind];
+  const table = { saju: "saju_results", gunghap: "gunghap_results", sonkeum: "sonkeum_results", jami: "jami_results" }[kind];
+  const countFn = { saju: "saju_today_count", gunghap: "gunghap_today_count", sonkeum: "sonkeum_today_count", jami: "jami_today_count" }[kind];
   const from = (page - 1) * PER_PAGE;
   let q = sb.from(table).select("*", { count: "exact" }).order("created_at", { ascending: false }).range(from, from + PER_PAGE - 1);
   if (query) {
     const qq = query.replace(/[%_]/g, "");
-    if (kind === "saju" || kind === "sonkeum") q = q.ilike("name", `%${qq}%`);
+    if (kind === "saju" || kind === "sonkeum" || kind === "jami") q = q.ilike("name", `%${qq}%`);
     else q = q.or(`a_name.ilike.%${qq}%,b_name.ilike.%${qq}%`);
   }
   const [{ data: rows, count, error }, { data: today }] = await Promise.all([q, sb.rpc(countFn)]);
@@ -188,6 +191,16 @@ async function renderList(msg) {
         <span class="nm">${esc(r.name)} <span class="hint">(${r.handedness === "right" ? "오른손잡이" : "왼손잡이"} · 손 ${r.hand_count}장)</span></span>
         <span class="pz">${esc((r.reading_text || "").replace(/##+\s*/g, "").replace(/\s+/g, " ").slice(0, 50))}…</span>
         <span class="meta">${r.birth_date ? `태어난 날 ${esc(r.birth_date)}` : "태어난 날 안 넣음"}</span>
+        <span class="meta">등록 ${fmt(r.created_at)}</span>
+      </button>
+      <button class="btn-ghost btn-danger del" data-del="${r.id}" data-name="${esc(r.name)}" type="button">지우기</button>
+    </li>`,
+    jami: (r) => `
+    <li class="card">
+      <button class="open" data-id="${r.id}" type="button">
+        <span class="nm">${esc(r.name)} <span class="hint">(${r.gender === "M" ? "남" : "여"} · ${esc(r.five_elements_class || "")})</span></span>
+        <span class="pz">명궁 ${esc(r.soul_palace || "")}</span>
+        <span class="meta">${r.calendar === "lunar" ? `음력${r.is_leap ? "(윤)" : ""}` : "양력"} ${esc(r.birth_date)} ${esc(r.birth_time)}</span>
         <span class="meta">등록 ${fmt(r.created_at)}</span>
       </button>
       <button class="btn-ghost btn-danger del" data-del="${r.id}" data-name="${esc(r.name)}" type="button">지우기</button>
@@ -250,7 +263,7 @@ function openRecord(r) {
       const chartA = mk("a"), chartB = mk("b");
       html = renderCompatReport(r.a_name, chartA, r.b_name, chartB, { hidePrint: false, relType: r.rel_type || "romantic" });
       filename = `궁합풀이_${clean(r.a_name)}_${clean(r.b_name)}.pdf`;
-    } else {
+    } else if (kind === "sonkeum") {
       html = `<article class="report" data-pdf-root>
         <header class="rhead" data-pdf-block><h1>${esc(r.name)}님의 손금풀이</h1>
           <p class="hint">${r.handedness === "right" ? "오른손잡이" : "왼손잡이"} · 손 사진 ${r.hand_count}장${r.birth_date ? ` · 태어난 날 ${esc(r.birth_date)}` : ""}</p>
@@ -259,6 +272,12 @@ function openRecord(r) {
         ${renderReading(r.reading_text)}
       </article>`;
       filename = `손금풀이_${clean(r.name)}.pdf`;
+    } else {
+      const [jy, jm, jd] = r.birth_date.split("-").map(Number);
+      const [jhh] = r.birth_time.split(":").map(Number);
+      const astrolabe = buildJamiChart({ gender: r.gender, calendar: r.calendar, leap: r.is_leap, y: jy, m: jm, d: jd, hour: jhh });
+      html = renderJamiReport(r.name, astrolabe);
+      filename = `자미두수_${clean(r.name)}.pdf`;
     }
   } catch (err) {
     html = `<div class="err">풀이를 다시 만들지 못했습니다. ${esc(err.message)}</div>`;
