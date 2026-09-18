@@ -40,21 +40,33 @@ function synthesis(p) {
   if (!majors.length) {
     return `이 궁에는 뚜렷한 주성이 없습니다(공궁). 그래서 ${domain}은 스스로 만들어 가기보다, 마주 보는 자리(대궁)에 있는 별의 영향을 받아 나타난다고 봅니다.`;
   }
-  const hero = majors.find((s) => s.mutagen) || majors[0];
+  // 사화가 록·권·과처럼 좋은 쪽으로 붙은 주성을 우선 주인공으로 삼는다. 화기만 있으면
+  // 그 별을 그대로 주인공 삼아 뒤에서 따로 짚어 준다(엉뚱한 별을 주인공으로 올리지 않도록).
+  const hero = majors.find((s) => s.mutagen && s.mutagen !== "기") || majors.find((s) => s.mutagen) || majors[0];
   const action = MAJOR_STAR_ACTION[hero.name] || "";
   const all = [...p.majorStars, ...p.minorStars];
   const sil = all.filter((s) => SILSEONG.has(s.name)).map((s) => s.name);
   const gil = all.filter((s) => GILSEONG.has(s.name)).map((s) => s.name);
-  const hwagi = all.filter((s) => s.mutagen === "기").map((s) => s.name);
+  const otherHwagi = all.filter((s) => s.mutagen === "기" && s.name !== hero.name).map((s) => s.name);
 
+  // 한 문단으로 자연스럽게 이어지도록, 같은 표현(특히 domain·"다만")을 두 번 이상 쓰지 않는다.
   let out = `쉽게 말하면, ${domain}에서 ${action} 모습을 보이기 쉽다는 뜻입니다.`;
-  if (hero.mutagen && hero.mutagen !== "기") {
-    const josa = hero.mutagen === "과" ? "가" : "이";
-    out += ` 마침 이 별에 화${hero.mutagen}${josa} 붙어 있어, 방금 말한 모습이 평소에도 자주, 뚜렷하게 나타난다고 봅니다.`;
+  if (hero.mutagen === "기") {
+    out += ` 다만 이 별에 걸리는 기운(화기)이 붙어 있어, 뜻대로 잘 안 풀리거나 마음처럼 안 될 때가 있으니 조급해하지 않는 것이 좋습니다.`;
+  } else if (hero.mutagen) {
+    out += ` 이런 성향이 평소에도 자주, 뚜렷하게 드러난다고 봅니다.`;
   }
-  if (sil.length) out += ` 다만 ${sil.join("·")} 기운도 함께 있어서, 조급하게 굴면 ${domain}에서 마찰이나 손해로 이어지기 쉬우니 서두르지 않는 것이 좋습니다.`;
-  if (gil.length) out += sil.length ? ` 그래도 곁에서 도와주는 기운이 있어 아주 나쁘게 흐르지는 않는다고 봅니다.` : ` 곁에서 도와주는 기운도 있어, 이 부분에서 힘든 일이 있어도 비교적 수월하게 풀린다고 봅니다.`;
-  if (hwagi.length) out += ` 다만 ${hwagi.join("·")}에 걸리는 기운(화기)이 붙어 있어, ${domain}에서 뜻대로 안 풀리거나 신경 쓸 일이 생기기 쉬우니 이 부분은 조금 더 챙기는 것이 좋습니다.`;
+
+  const cautions = [...sil, ...otherHwagi];
+  if (cautions.length) {
+    const lead = hero.mutagen === "기" ? "여기에" : "다만";
+    out += ` ${lead} ${cautions.join("·")} 기운도 함께 있어서, 서두르거나 무리하면 마찰이나 아쉬운 결과로 이어지기 쉬우니 조금 더 신경 쓰는 것이 좋습니다.`;
+  }
+  if (gil.length) {
+    out += (cautions.length || hero.mutagen === "기")
+      ? ` 그래도 곁에서 도와주는 기운이 있어, 아주 나쁘게 흐르지는 않는다고 봅니다.`
+      : ` 곁에서 도와주는 기운도 있어, 어려운 일이 있어도 비교적 수월하게 풀린다고 봅니다.`;
+  }
   return out;
 }
 
