@@ -37,6 +37,11 @@ a { color: var(--water); }
 /* 첫 화면 */
 .hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; padding-bottom: 28px; border-bottom: 2px solid var(--ink); }
 .hero h1 { font-size: clamp(44px, 9vw, 72px); letter-spacing: -0.02em; }
+.hero h1 .subtitle {
+  display: inline-block; vertical-align: middle; font-family: var(--sans); font-size: 15px; font-weight: 400;
+  color: var(--soft); background: var(--paper-2); border: 1px solid var(--line); border-radius: 20px;
+  padding: 4px 12px; margin-left: 10px; letter-spacing: 0;
+}
 .hero p { margin: 10px 0 0; color: var(--soft); max-width: 30em; }
 .today { display: flex; gap: 6px; flex-shrink: 0; }
 .today figure { margin: 0; text-align: center; }
@@ -330,17 +335,10 @@ details summary { cursor: pointer; color: var(--water); margin-bottom: 8px; }
 .loading-box { text-align: center; padding: 60px 16px; color: var(--soft); }
 .loading-box p:first-child { font-size: 18px; color: var(--ink); font-family: var(--serif); margin-bottom: 8px; }
 
-/* 손금 기초 그림·범례(카드형: 줄 하나마다 확대 그림+이름+설명) */
-.handcard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-.handcard { background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
-.handcard svg { width: 100%; display: block; border-radius: 6px; }
-.handcard-name { font-family: var(--serif); font-weight: 800; margin: 6px 0 2px; text-align: center; }
-.handcard .hint { margin: 0; }
-@media (min-width: 640px) { .handcard-grid { grid-template-columns: repeat(4, 1fr); } }
-
 /* 자미두수 명반 */
 .jami-glossary { list-style: none; margin: 6px 0 14px; padding: 0; display: grid; gap: 8px; font-size: 14px; }
 .jami-glossary b { font-family: var(--serif); margin-right: 4px; }
+.jami-glossary .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
 .jami-grid { display: grid; gap: 10px; }
 .jami-card { background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
 .jami-card-head { display: flex; align-items: center; gap: 8px; font-family: var(--serif); font-size: 16px; margin-bottom: 2px; }

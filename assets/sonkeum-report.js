@@ -17,45 +17,44 @@ export function renderReading(text) {
   }).join("");
 }
 
-// 손금 기초 그림 — 실제 사진을 분석해 그린 게 아니라, 네 가지 선이 손금
-// 사진에서 보통 어떤 모양으로 보이는지 하나씩 나눠서 보여 주는 일반적인
-// 참고 그림이다(손바닥을 확대한 모양 + 그 줄만 색으로 표시). 사람마다 손
-// 모양이 달라 실제 위치·굵기는 사진마다 조금씩 다를 수 있다.
+// 손금 기초 그림 — 실제 사진을 분석해 그린 게 아니라, 네 가지 선이 손바닥
+// 전체에서 대략 어느 자리에 있는지 한 번에 보여 주는 일반적인 참고 그림이다.
+// 이용자가 어느 손을 기준으로 풀이를 받았는지(handedness)에 맞춰 좌우를
+// 뒤집어, 실제 자기 손을 보듯 자연스럽게 비교할 수 있게 한다.
 const LINE_INFO = [
   { name: "생명선", color: "#c23b2b",
-    path: "M30,10 Q10,70 25,130 Q40,175 65,195",
     desc: "엄지 뿌리를 감싸며 손목 쪽으로 내려가는 줄. 체력·건강 성향, 삶에 대한 열정을 본다고 알려져 있습니다." },
   { name: "두뇌선", color: "#24466b",
-    path: "M10,80 Q90,95 150,80 Q185,72 200,60",
     desc: "손바닥 가운데를 가로지르는 줄. 사고방식·집중력·판단력을 본다고 알려져 있습니다." },
   { name: "감정선", color: "#2f7d5b",
-    path: "M5,45 Q90,20 150,42 Q185,55 205,75",
     desc: "손가락 아래쪽을 가로지르는 줄. 감정 표현과 애정 성향을 본다고 알려져 있습니다." },
-  { name: "운명선", color: "#737a84",
-    path: "M100,195 L102,10",
+  { name: "운명선", color: "#8a7a68",
     desc: "손목에서 가운뎃손가락 쪽으로 올라가는 줄. 있는 사람도, 뚜렷하지 않은 사람도 있으며 직업·인생의 방향을 본다고 알려져 있습니다." },
 ];
 
-// 확대한 손바닥 살결처럼 보이도록, 짙은 색 줄 하나 + 옅은 다른 주름 두 개를 곁들인다.
-function palmCard(l) {
-  return `
-  <div class="handcard">
-    <svg viewBox="0 0 210 200" role="img" aria-label="${l.name} 위치 예시 그림">
-      <rect width="210" height="200" rx="16" fill="#f4ece4"/>
-      <path d="M-10,50 Q60,20 120,60 T220,95" fill="none" stroke="#e3d3c0" stroke-width="3"/>
-      <path d="M-10,140 Q80,115 140,150 T220,135" fill="none" stroke="#e3d3c0" stroke-width="3"/>
-      <path d="${l.path}" fill="none" stroke="${l.color}" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 14"/>
-    </svg>
-    <p class="handcard-name" style="color:${l.color}">${l.name}</p>
-    <p class="hint">${l.desc}</p>
-  </div>`;
-}
-
-export function handDiagramSection() {
+// handedness: "right"|"left" — 왼손 기준이면 손 그림 전체를 좌우로 뒤집는다.
+export function handDiagramSection(handedness) {
+  const flip = handedness === "left";
+  const legend = LINE_INFO.map((l) => `<li><span class="dot" style="background:${l.color}"></span><b style="color:${l.color}">${l.name}</b> ${l.desc}</li>`).join("");
   return `
   <section class="rsec handmap" data-pdf-block>
     <h2>손금 기초 알아보기</h2>
-    <div class="handcard-grid">${LINE_INFO.map(palmCard).join("")}</div>
-    <p class="hint">실제 사진을 분석해 그린 그림이 아니라, 각 줄이 보통 어떤 자리·모양으로 나타나는지 보여 주는 일반적인 참고 그림입니다. 손 모양은 사람마다 달라 실제 위치는 사진마다 조금씩 다를 수 있습니다.</p>
+    <svg viewBox="0 0 300 400" role="img" aria-label="손바닥 전체와 네 가지 손금 선의 위치를 보여 주는 참고 그림" style="width:100%;max-width:220px;display:block;margin:0 auto">
+      <g ${flip ? 'transform="scale(-1,1) translate(-300,0)"' : ""}>
+        <path d="M75,180 L225,180 L225,300 C225,350 190,392 150,392 C110,392 75,350 75,300 Z" fill="#f4ece2" stroke="#d9c6ae" stroke-width="3"/>
+        <rect x="82" y="70" width="34" height="118" rx="17" fill="#f4ece2" stroke="#d9c6ae" stroke-width="3"/>
+        <rect x="133" y="40" width="34" height="148" rx="17" fill="#f4ece2" stroke="#d9c6ae" stroke-width="3"/>
+        <rect x="184" y="55" width="34" height="133" rx="17" fill="#f4ece2" stroke="#d9c6ae" stroke-width="3"/>
+        <rect x="228" y="90" width="30" height="98" rx="15" fill="#f4ece2" stroke="#d9c6ae" stroke-width="3"/>
+        <path d="M78,240 C45,232 20,210 14,183 C9,160 22,142 42,146 C60,150 70,168 78,196 Z" fill="#f4ece2" stroke="#d9c6ae" stroke-width="3"/>
+        <rect x="75" y="172" width="150" height="16" fill="#f4ece2"/>
+        <path d="M85,210 C130,195 195,194 250,213" fill="none" stroke="#2f7d5b" stroke-width="7" stroke-linecap="round"/>
+        <path d="M78,248 C125,262 190,266 245,244" fill="none" stroke="#24466b" stroke-width="7" stroke-linecap="round"/>
+        <path d="M112,192 C90,202 76,228 74,265 C72,302 84,345 105,385" fill="none" stroke="#c23b2b" stroke-width="7" stroke-linecap="round"/>
+        <path d="M150,388 C151,320 152,240 154,180" fill="none" stroke="#8a7a68" stroke-width="6" stroke-linecap="round" stroke-dasharray="1 13"/>
+      </g>
+    </svg>
+    <ul class="jami-glossary" style="margin-top:12px">${legend}</ul>
+    <p class="hint">${handedness === "left" ? "왼손" : "오른손"} 기준으로 그린 그림입니다. 실제 사진을 분석해 그린 것이 아니라, 각 줄이 보통 어느 자리에 있는지 보여 주는 일반적인 참고 그림입니다. 손 모양은 사람마다 달라 실제 위치는 사진마다 조금씩 다를 수 있습니다.</p>
   </section>`;
 }

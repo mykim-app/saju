@@ -151,7 +151,7 @@ async function onSubmit(e) {
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.text) { renderForm(data.error || "손금을 읽는 중 문제가 생겼습니다. 잠시 후 다시 시도해 주세요."); return; }
     const handCount = photos.other ? 2 : 1;
-    showResult(name, data.text);
+    showResult(name, handedness, data.text);
     save(name, handedness, handCount, birth, sajuNote, data.text);
   } catch (err) {
     renderForm("손금 풀이 서버에 연결하지 못했습니다. 인터넷 연결을 확인하고 다시 시도해 주세요.");
@@ -167,10 +167,10 @@ function showLoading() {
 // 있는 그대로 믿지 않고 반드시 이스케이프부터 한 뒤에 굵게(**) 표시만 옮긴다.
 // (렌더 함수 자체는 sonkeum-report.js에 있음 — admin.js도 같은 함수를 쓴다)
 
-function showResult(name, text) {
+function showResult(name, handedness, text) {
   const html = `<article class="report" data-pdf-root>
     <header class="rhead" data-pdf-block><h1>${esc(name)}님의 손금풀이</h1></header>
-    ${handDiagramSection()}
+    ${handDiagramSection(handedness)}
     ${renderReading(text)}
     <section class="rsec outro" data-pdf-block>
       <p>손금은 재미로 보는 참고 자료입니다. 같은 손이라도 보는 사람과 유파에 따라 풀이가 다를 수 있고, 사진의 각도·조명에 따라서도 결과가 달라질 수 있습니다. 건강·중요한 결정의 근거로 쓰지 마세요.</p>

@@ -268,7 +268,7 @@ function openRecord(r) {
         <header class="rhead" data-pdf-block><h1>${esc(r.name)}님의 손금풀이</h1>
           <p class="hint">${r.handedness === "right" ? "오른손잡이" : "왼손잡이"} · 손 사진 ${r.hand_count}장${r.birth_date ? ` · 태어난 날 ${esc(r.birth_date)}` : ""}</p>
         </header>
-        ${handDiagramSection()}
+        ${handDiagramSection(r.handedness)}
         ${renderReading(r.reading_text)}
       </article>`;
       filename = `손금풀이_${clean(r.name)}.pdf`;

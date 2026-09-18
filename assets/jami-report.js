@@ -16,6 +16,18 @@ function starTag(s) {
   return `<span class="star ${cls}">${parts.join(" ")}</span>`;
 }
 
+// 이 궁에 있는 주성·보조성 각각의 뜻을, 그 궁 카드 바로 안에서 하나씩 보여 준다
+// (전에는 화면 맨 아래에 명반 전체 별을 한꺼번에 모아 뒀는데, 그러면 지금 보는
+// 궁의 별이 무슨 뜻인지 알려면 한참 아래로 내려가야 해서 보기 불편했다).
+function starMeaningList(p) {
+  const items = [];
+  for (const s of [...p.majorStars, ...p.minorStars]) {
+    const desc = MAJOR_STAR_MEANING[s.name] || MINOR_STAR_MEANING[s.name];
+    if (desc) items.push(`<li><b>${esc(s.name)}</b> ${esc(desc)}</li>`);
+  }
+  return items.length ? `<ul class="jami-glossary" style="margin-top:8px">${items.join("")}</ul>` : "";
+}
+
 function palaceCard(p, isSoul, isBody) {
   const meaning = PALACE_MEANING[p.name] || "";
   const stars = allStarsOf(p);
@@ -31,29 +43,17 @@ function palaceCard(p, isSoul, isBody) {
     </div>
     <p class="hint" style="margin:2px 0 8px">${esc(meaning)}</p>
     <div class="jami-stars">${stars.length ? stars.map(starTag).join(" ") : '<span class="hint">이 궁에는 뚜렷한 별이 없습니다(공궁). 맞은편 궁(대궁)의 별을 함께 봅니다.</span>'}</div>
+    ${starMeaningList(p)}
     <p class="hint" style="margin-top:6px">12운 : ${esc(p.changsheng12)} · 대한 ${p.decadal.range[0]}~${p.decadal.range[1]}세</p>
   </div>`;
 }
 
-function glossarySection(astrolabe) {
-  const majorSeen = new Set(), minorSeen = new Set();
-  for (const p of astrolabe.palaces) {
-    p.majorStars.forEach((s) => majorSeen.add(s.name));
-    p.minorStars.forEach((s) => minorSeen.add(s.name));
-  }
-  const majorList = [...majorSeen].filter((n) => MAJOR_STAR_MEANING[n])
-    .map((n) => `<li><b>${esc(n)}</b> ${esc(MAJOR_STAR_MEANING[n])}</li>`).join("");
-  const minorList = [...minorSeen].filter((n) => MINOR_STAR_MEANING[n])
-    .map((n) => `<li><b>${esc(n)}</b> ${esc(MINOR_STAR_MEANING[n])}</li>`).join("");
+function glossarySection() {
   const sihuaList = Object.entries(SIHUA_MEANING).map(([k, v]) => `<li><b>${esc(k)}</b> ${esc(v)}</li>`).join("");
-  return section("이 명반에 나온 별 뜻풀이", `
-    <p class="sub-h">이 사람의 명반에 있는 주성(主星)</p>
-    <ul class="jami-glossary">${majorList}</ul>
-    <p class="sub-h">이 사람의 명반에 있는 보조성</p>
-    <ul class="jami-glossary">${minorList || '<li>뚜렷한 보조성이 없습니다.</li>'}</ul>
+  return section("사화·밝기 표시가 뜻하는 것", `
     <p class="sub-h">사화(四化) — 별 이름 옆 작은 글자의 뜻</p>
     <ul class="jami-glossary">${sihuaList}</ul>
-    <p class="hint">별 이름 옆 [묘][왕][득][리][평][부][함]은 그 자리에서 별의 기운이 얼마나 잘 드러나는지를 나타냅니다(묘가 가장 강하고, 함이 가장 약함).</p>
+    <p class="hint">별 이름 옆 [묘][왕][득][리][평][부][함]은 그 자리에서 별의 기운이 얼마나 잘 드러나는지를 나타냅니다(묘가 가장 강하고, 함이 가장 약함). 각 궁의 별 뜻은 그 궁 카드 안에 바로 적어 두었습니다.</p>
   `);
 }
 
@@ -82,7 +82,7 @@ export function renderJamiReport(name, astrolabe) {
   const cards = order.map((p) => palaceCard(p, p.name === "명궁", p.isBodyPalace)).join("");
   const palacesSec = section("12궁 — 명궁부터 차례로", `<div class="jami-grid">${cards}</div>`);
 
-  const glossary = glossarySection(astrolabe);
+  const glossary = glossarySection();
 
   const outro = `
   <section class="rsec outro" data-pdf-block>
