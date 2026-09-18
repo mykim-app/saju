@@ -1,4 +1,4 @@
-import { PALACE_MEANING, MAJOR_STAR_MEANING, MINOR_STAR_MEANING, MAJOR_STAR_GIST, SIHUA_MEANING, FIVE_ELEMENT_CLASS } from "./jami-data.js";
+import { PALACE_MEANING, MAJOR_STAR_MEANING, MINOR_STAR_MEANING, MAJOR_STAR_ACTION, PALACE_DOMAIN, SIHUA_MEANING, FIVE_ELEMENT_CLASS } from "./jami-data.js";
 import { soulPalace, bodyPalace, brightnessOf, allStarsOf } from "./jami-core.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -31,33 +31,30 @@ function starMeaningList(p) {
 }
 
 // 궁 안의 별을 한 줄씩 보고 나면 "그래서 결론이 뭔데?"가 남기 마련이라,
-// 그 궁의 별들을 종합해서 한두 문장으로 정리해 준다. 주성(있으면 사화가
-// 붙은 쪽을 우선) 하나를 중심으로 잡고, 길성·살성·화기가 있으면 그에 따라
-// 뒤에 짧게 덧붙이는 방식이다.
+// "쉽게 말하면 어디서 어떤 모습으로 나타나는지"를 실제 문장으로 풀어 준다.
+// 별 이름을 나열하는 대신, 그 궁의 생활 영역(PALACE_DOMAIN)에 주성의 행동
+// 묘사(MAJOR_STAR_ACTION)를 끼워 넣어 한 사람의 모습처럼 읽히게 만든다.
 function synthesis(p) {
+  const domain = PALACE_DOMAIN[p.name] || "이 영역";
   const majors = p.majorStars;
   if (!majors.length) {
-    return "이 궁에는 뚜렷한 주성이 없습니다(공궁). 이럴 때는 마주 보는 자리(대궁)의 별 기운을 빌려 온다고 보고, 대궁의 별로 이 궁의 성향을 짐작합니다.";
+    return `이 궁에는 뚜렷한 주성이 없습니다(공궁). 그래서 ${domain}은 스스로 만들어 가기보다, 마주 보는 자리(대궁)에 있는 별의 영향을 받아 나타난다고 봅니다.`;
   }
   const hero = majors.find((s) => s.mutagen) || majors[0];
-  const heroGist = MAJOR_STAR_GIST[hero.name] || hero.name;
-  const rest = majors.filter((s) => s !== hero).map((s) => s.name);
+  const action = MAJOR_STAR_ACTION[hero.name] || "";
   const all = [...p.majorStars, ...p.minorStars];
   const sil = all.filter((s) => SILSEONG.has(s.name)).map((s) => s.name);
   const gil = all.filter((s) => GILSEONG.has(s.name)).map((s) => s.name);
   const hwagi = all.filter((s) => s.mutagen === "기").map((s) => s.name);
 
-  let out = `이 자리는 ${hero.name}(${heroGist})의 기운이 중심입니다.`;
-  if (rest.length) out += ` 같이 있는 ${rest.join("·")}의 색깔도 함께 섞여 나타난다고 봅니다.`;
+  let out = `쉽게 말하면, ${domain}에서 ${action} 모습을 보이기 쉽다는 뜻입니다.`;
   if (hero.mutagen && hero.mutagen !== "기") {
-    const word = `화${hero.mutagen}`;
-    const josa = hero.mutagen === "과" ? "가" : "이"; // 화록·화권은 받침이 있어 '이', 화과는 받침이 없어 '가'
-    out += ` 마침 ${hero.name}에 ${word}${josa} 붙어, 이 기운이 한층 더 뚜렷하게 살아난다고 봅니다.`;
+    const josa = hero.mutagen === "과" ? "가" : "이";
+    out += ` 마침 이 별에 화${hero.mutagen}${josa} 붙어 있어, 방금 말한 모습이 평소에도 자주, 뚜렷하게 나타난다고 봅니다.`;
   }
-  if (sil.length && gil.length) out += ` 다만 ${sil.join("·")} 같은 부딪히는 기운도 함께 있어, ${gil.join("·")}의 도움을 받으면서 서두르지 않으면 무난하다고 봅니다.`;
-  else if (sil.length) out += ` 다만 ${sil.join("·")} 같은 부딪히는 기운도 있어, 이 부분만 조심하면 무난합니다.`;
-  else if (gil.length) out += ` 여기에 ${gil.join("·")}의 도움도 있어, 전체적으로 힘을 받는 자리로 봅니다.`;
-  if (hwagi.length) out += ` ${hwagi.join("·")}에는 화기가 붙어 있어, 이 부분은 특히 조심해서 다루는 게 좋습니다.`;
+  if (sil.length) out += ` 다만 ${sil.join("·")} 기운도 함께 있어서, 조급하게 굴면 ${domain}에서 마찰이나 손해로 이어지기 쉬우니 서두르지 않는 것이 좋습니다.`;
+  if (gil.length) out += sil.length ? ` 그래도 곁에서 도와주는 기운이 있어 아주 나쁘게 흐르지는 않는다고 봅니다.` : ` 곁에서 도와주는 기운도 있어, 이 부분에서 힘든 일이 있어도 비교적 수월하게 풀린다고 봅니다.`;
+  if (hwagi.length) out += ` 다만 ${hwagi.join("·")}에 걸리는 기운(화기)이 붙어 있어, ${domain}에서 뜻대로 안 풀리거나 신경 쓸 일이 생기기 쉬우니 이 부분은 조금 더 챙기는 것이 좋습니다.`;
   return out;
 }
 
