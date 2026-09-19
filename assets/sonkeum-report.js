@@ -39,22 +39,9 @@ export function handDiagramSection(handedness) {
   return `
   <section class="rsec handmap" data-pdf-block>
     <h2>손금 기초 알아보기</h2>
-    <svg viewBox="0 0 300 400" role="img" aria-label="손바닥 전체와 네 가지 손금 선의 위치를 보여 주는 참고 그림" style="width:100%;max-width:220px;display:block;margin:0 auto">
-      <g ${flip ? 'transform="scale(-1,1) translate(-300,0)"' : ""}>
-        <path d="M75,180 L225,180 L225,300 C225,350 190,392 150,392 C110,392 75,350 75,300 Z" fill="#f4ece2" stroke="#d9c6ae" stroke-width="3"/>
-        <rect x="82" y="70" width="34" height="118" rx="17" fill="#f4ece2" stroke="#d9c6ae" stroke-width="3"/>
-        <rect x="133" y="40" width="34" height="148" rx="17" fill="#f4ece2" stroke="#d9c6ae" stroke-width="3"/>
-        <rect x="184" y="55" width="34" height="133" rx="17" fill="#f4ece2" stroke="#d9c6ae" stroke-width="3"/>
-        <rect x="228" y="90" width="30" height="98" rx="15" fill="#f4ece2" stroke="#d9c6ae" stroke-width="3"/>
-        <path d="M78,240 C45,232 20,210 14,183 C9,160 22,142 42,146 C60,150 70,168 78,196 Z" fill="#f4ece2" stroke="#d9c6ae" stroke-width="3"/>
-        <rect x="75" y="172" width="150" height="16" fill="#f4ece2"/>
-        <path d="M85,210 C130,195 195,194 250,213" fill="none" stroke="#2f7d5b" stroke-width="7" stroke-linecap="round"/>
-        <path d="M78,248 C125,262 190,266 245,244" fill="none" stroke="#24466b" stroke-width="7" stroke-linecap="round"/>
-        <path d="M112,192 C90,202 76,228 74,265 C72,302 84,345 105,385" fill="none" stroke="#c23b2b" stroke-width="7" stroke-linecap="round"/>
-        <path d="M150,388 C151,320 152,240 154,180" fill="none" stroke="#8a7a68" stroke-width="6" stroke-linecap="round" stroke-dasharray="1 13"/>
-      </g>
-    </svg>
+    <img src="./assets/img/hand-lines.jpg" alt="손바닥 사진 위에 네 가지 손금 선의 위치를 표시한 참고 그림"
+      style="width:100%;max-width:220px;display:block;margin:0 auto;border-radius:10px;${flip ? "transform:scaleX(-1)" : ""}">
     <ul class="jami-glossary" style="margin-top:12px">${legend}</ul>
-    <p class="hint">${handedness === "left" ? "왼손" : "오른손"} 기준으로 그린 그림입니다. 실제 사진을 분석해 그린 것이 아니라, 각 줄이 보통 어느 자리에 있는지 보여 주는 일반적인 참고 그림입니다. 손 모양은 사람마다 달라 실제 위치는 사진마다 조금씩 다를 수 있습니다.</p>
+    <p class="hint">${handedness === "left" ? "왼손" : "오른손"} 기준으로 보이도록 뒤집은 사진입니다. 이용자분의 사진을 분석해 그린 것이 아니라, 각 줄이 실제 손에서 대략 어느 자리에 있는지 미리 보여 주는 일반적인 참고 사진입니다. 손 모양은 사람마다 달라 실제 위치는 조금씩 다를 수 있습니다.</p>
   </section>`;
 }

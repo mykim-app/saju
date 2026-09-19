@@ -101,6 +101,13 @@ function slice(canvas, fromPx, toPx) {
 export async function saveReportPdf(root, filename, onProgress = () => {}) {
   await ensureLibs();
   if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  // 사진(예: 손금 참고 그림) 같은 <img>가 아직 안 불러와진 채로 캡처되면 빈 칸으로
+  // 찍히므로, 다 불러오거나 실패할 때까지 잠깐 기다린다.
+  const imgs = Array.from(root.querySelectorAll("img"));
+  await Promise.all(imgs.map((img) => img.complete ? Promise.resolve() : new Promise((res) => {
+    img.addEventListener("load", res, { once: true });
+    img.addEventListener("error", res, { once: true });
+  })));
   const prevScroll = window.scrollY;
   window.scrollTo(0, 0);
 
