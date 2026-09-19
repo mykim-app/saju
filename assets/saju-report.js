@@ -326,9 +326,35 @@ export function renderReport(chart, opts = {}) {
 
   /* 합충 */
   const relTypes = [...new Set(rels.map((r) => r.type))];
+  const REL_TONE = {
+    "천간합": "pos", "육합": "pos", "삼합": "pos", "반합": "pos", "방합": "pos",
+    "천간충": "neg", "충": "neg", "형": "neg", "파": "neg", "해": "neg",
+    "원진": "tension", "귀문": "tension",
+  };
+  // 관계를 자리(예: 년주·월주)별로 묶어서, "그래서 무슨 뜻인지"를 그 두 자리가
+  // 뜻하는 삶의 영역으로 풀어 한 줄씩 정리한다. 삼합·반합·방합처럼 사주 전체에
+  // 걸치는 관계는 자리 두 곳으로 나눌 수 없어 이 종합에서는 다루지 않는다.
+  const byWhere = new Map();
+  for (const r of rels) {
+    if (r.where === "사주 전체") continue;
+    if (!byWhere.has(r.where)) byWhere.set(r.where, []);
+    byWhere.get(r.where).push(r.type);
+  }
+  const relSynth = [...byWhere.entries()].map(([where, types]) => {
+    const [a, b] = where.split("·");
+    const tones = new Set(types.map((t) => REL_TONE[t] || "neg"));
+    const uniqTypes = [...new Set(types)];
+    let tail;
+    if (tones.has("neg") && tones.has("pos")) tail = "묶이면서도 부딪히는 기운이 함께 있어, 가깝고 얽혀 있으면서도 부딪힐 때가 있는 복잡한 사이로 봅니다.";
+    else if (tones.has("neg")) tail = "부딪히는 기운이 있어, 이 두 자리가 뜻하는 영역 사이에서 변화나 갈등이 생기기 쉽습니다.";
+    else if (tones.has("tension")) tail = "강하게 끌리면서도 예민해지는 기운이 있어, 두 영역이 서로 영향을 많이 주고받는다고 봅니다.";
+    else tail = "잘 맞물리는 기운이 있어, 두 영역이 서로 돕고 도움을 받기 쉽습니다.";
+    return `<li><b>${esc(a)}·${esc(b)}</b>(${esc(POS_MEAN[a])} ↔ ${esc(POS_MEAN[b])}) — ${uniqTypes.join("·")}: ${tail}</li>`;
+  }).join("");
   const relHtml = rels.length ? `
     <ul class="plain">${rels.map((r) => `<li><b>${r.text}</b> <span class="where">${r.where}</span></li>`).join("")}</ul>
-    <p class="hint">년주는 조상·어린 시절, 월주는 부모·형제·사회생활, 일주는 나와 배우자, 시주는 자녀·말년 자리입니다. 부딪치는 자리가 뜻하는 쪽에서 변화가 생기기 쉽다고 봅니다.</p>
+    <p class="hint">년주는 조상·어린 시절, 월주는 부모·형제·사회생활, 일주는 나와 배우자, 시주는 자녀·말년 자리입니다.</p>
+    ${relSynth ? `<p class="sub-h">쉽게 말하면</p><ul class="plain">${relSynth}</ul>` : ""}
     ${relTypes.map((t) => `<p><b>${t}</b>: ${T.REL_TEXT[t]}</p>`).join("")}` : "<p>사주 안에서 서로 크게 부딪치거나 묶이는 글자가 없습니다. 기운의 흐름이 비교적 순탄합니다.</p>";
 
   /* 분야별 풀이 */
